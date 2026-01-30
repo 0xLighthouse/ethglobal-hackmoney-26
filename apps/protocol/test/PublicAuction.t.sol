@@ -14,7 +14,7 @@ contract PublicAuctionTest is Test {
     }
 
     function test_CCAFactoryExists() public view {
-        IContinuousClearingAuctionFactory ccaFactory = IContinuousClearingAuctionFactory(CCA_FACTORY_ADDRESS);
+      IContinuousClearingAuctionFactory ccaFactory = IContinuousClearingAuctionFactory(CCA_FACTORY_ADDRESS);
       assertGt(address(ccaFactory).code.length, 0);
     }
 

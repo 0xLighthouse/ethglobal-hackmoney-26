@@ -28,5 +28,8 @@
       "name": "v2.0.0",
       "rev": "610603eed7c35ff504e23ec87cd18ec3f701e746"
     }
+  },
+  "lib/openzeppelin-contracts-upgradeable": {
+    "rev": "3d5fa5c24c411112bab47bec25cfa9ad0af0e6e8"
   }
 }
