@@ -1,0 +1,6 @@
+[submodule "apps/protocol/lib/continuous-clearing-auction"]
+	path = apps/protocol/lib/continuous-clearing-auction
+	url = https://github.com/Uniswap/continuous-clearing-auction
+[submodule "apps/protocol/lib/liquidity-launcher"]
+	path = apps/protocol/lib/liquidity-launcher
+	url = https://github.com/Uniswap/liquidity-launcher
