@@ -1,4 +1,16 @@
 {
+  "lib/cofhe-contracts": {
+    "tag": {
+      "name": "v0.0.14",
+      "rev": "b2cc2eaa920cbcf4feddba6f19160537c58dba3b"
+    }
+  },
+  "lib/cofhe-mock-contracts": {
+    "tag": {
+      "name": "v0.3.1",
+      "rev": "14e5446de3f130bac92b6cd181a24be4559957a0"
+    }
+  },
   "lib/continuous-clearing-auction": {
     "tag": {
       "name": "v1.1.0",

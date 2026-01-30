@@ -1,0 +1,6 @@
+lib/cca/=lib/continuous-clearing-auction/src/
+lib/cofhe-contracts/=lib/cofhe-contracts/
+cofhe-contracts/=lib/cofhe-contracts/contracts/
+@fhenixprotocol/cofhe-contracts/=lib/cofhe-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+hardhat/=lib/hardhat/
