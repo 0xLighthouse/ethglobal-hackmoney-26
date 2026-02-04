@@ -6,11 +6,7 @@ import "./MockERC20Refundable.sol";
 /// @notice Factory for deploying MockERC20Refundable tokens
 contract MockERC20RefundableFactory {
     event TokenDeployed(
-        address indexed token,
-        address indexed beneficiary,
-        address indexed fundingToken,
-        string name,
-        string symbol
+        address indexed token, address indexed beneficiary, address indexed fundingToken, string name, string symbol
     );
 
     struct DeployParams {
@@ -26,9 +22,7 @@ contract MockERC20RefundableFactory {
     address[] public deployedTokens;
     mapping(address => bool) public isDeployedToken;
 
-    function deployToken(
-        DeployParams memory params
-    ) external returns (address token) {
+    function deployToken(DeployParams memory params) external returns (address token) {
         MockERC20Refundable newToken = new MockERC20Refundable(
             params.name,
             params.symbol,
@@ -43,13 +37,7 @@ contract MockERC20RefundableFactory {
         deployedTokens.push(token);
         isDeployedToken[token] = true;
 
-        emit TokenDeployed(
-            token,
-            params.beneficiary,
-            params.fundingToken,
-            params.name,
-            params.symbol
-        );
+        emit TokenDeployed(token, params.beneficiary, params.fundingToken, params.name, params.symbol);
     }
 
     function getDeployedTokensCount() external view returns (uint256) {

@@ -20,7 +20,7 @@ interface IERC20Refundable is IERC20 {
     // ---------------------------------------------------------------
 
     /// @notice Block height when the refund window starts
-    function refundWindowStartBlock() external view returns (uint128);
+    function refundWindowStartBlock() external view returns (uint64);
 
     /// @notice Block height when decay starts
     function refundableDecayStartBlock() external view returns (uint64);
@@ -36,7 +36,7 @@ interface IERC20Refundable is IERC20 {
 
     /// @notice Total funding tokens claimed by the beneficiary
     function totalFundsClaimed() external view returns (uint256);
-  
+
     // ---------------------------------------------------------------
     // Refund-specific views
     // ---------------------------------------------------------------
@@ -59,11 +59,8 @@ interface IERC20Refundable is IERC20 {
     /// @param receiver Recipient of the refunded tokens (can be different from msg.sender).
     /// @return refundedTokenAmount Number of tokens refunded(may be < tokenAmount).
     /// @return fundingTokenAmount Amount of funding token sent to receiver.
-   
-    function refund(
-        uint256 tokenAmount,
-        address receiver
-    )
+
+    function refund(uint256 tokenAmount, address receiver)
         external
         returns (uint256 refundedTokenAmount, uint256 fundingTokenAmount);
 
@@ -77,23 +74,16 @@ interface IERC20Refundable is IERC20 {
     /// @notice Allows anyone to claim all available funds for the beneficiary
     /// @return fundingTokensClaimed Amount of funding tokens which were claimed
     function claimFundsForBeneficiary() external returns (uint256 fundingTokensClaimed);
-    
+
     // ---------------------------------------------------------------
     // Events
     // ---------------------------------------------------------------
 
     /// @notice Emitted when tokens are refunded.
-    event Refunded(
-        address indexed account,
-        address indexed receiver,
-        uint256 tokenAmount,
-        uint256 fundingTokenAmount
-    );
+    event Refunded(address indexed account, address indexed receiver, uint256 tokenAmount, uint256 fundingTokenAmount);
 
     /// @notice Emitted when funds are claimed by the beneficiary.
-    event FundsClaimedForBeneficiary(
-        uint256 fundingTokensClaimed
-    );
+    event FundsClaimedForBeneficiary(uint256 fundingTokensClaimed);
 
     /// @notice Emitted when a transfer fails.
     error ERC20TransferFailed();
