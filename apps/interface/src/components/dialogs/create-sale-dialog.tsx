@@ -8,12 +8,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function CreateSaleDialog() {
+type CreateSaleDialogProps = {
+  triggerLabel?: string;
+  triggerClassName?: string;
+  disabled?: boolean;
+};
+
+export function CreateSaleDialog({
+  triggerLabel = "Create Sale",
+  triggerClassName = "h-11 rounded-full px-5 text-sm font-semibold shadow-sm",
+  disabled = false,
+}: CreateSaleDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="h-11 rounded-full px-5 text-sm font-semibold shadow-sm">
-          Create Sale
+        <Button className={triggerClassName} disabled={disabled}>
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl rounded-[24px] border-0 p-0 shadow-2xl">
