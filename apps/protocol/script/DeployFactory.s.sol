@@ -9,7 +9,7 @@ import {ERC20RefundableTokenSaleFactory} from "../src/ERC20RefundableTokenSaleFa
 contract DeployFactory is Script {
     function run() external returns (ERC20RefundableTokenSaleFactory factory) {
         // Get deployer from private key
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
 
         console.log("Deploying ERC20RefundableTokenSaleFactory...");
