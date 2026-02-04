@@ -160,6 +160,10 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
             _refundableBalances[msg.sender].originalAmount - refundedTokenAmount;
         _refundableBalances[msg.sender].blockHeight = block.number;
 
+        // Update total refundable tokens
+        _totalRefundableTokens -= refundedTokenAmount;
+        _totalRefundableBlockHeight = uint64(block.number);
+
         // Return tokens to contract
         _transfer(msg.sender, address(this), refundedTokenAmount);
 
@@ -178,11 +182,11 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
     /// @notice Calculate how many funding tokens the agent can currently claim
     /// @dev Subtracts funds locked for potential refunds from available balance
     /// @return Amount of funding tokens available to claim
-    function claimableFunds() external view returns (uint256) {
+    function claimableFunds() external view virtual returns (uint256) {
         return _claimableFunds();
     }
 
-    function _claimableFunds() internal view returns (uint256) {
+    function _claimableFunds() internal view virtual returns (uint256) {
         // Find what percent of the total refundable tokens are currently refundable
         uint256 currentlyRefundableTokens = _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight);
 

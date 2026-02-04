@@ -1,1 +1,148 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
+import "./ERC20RefundableTokenSale.sol";
+import "./interfaces/IERC20Factory.sol";
+
+/// @notice Factory contract for deploying ERC20RefundableTokenSale contracts
+contract ERC20Factory is IERC20Factory {
+    // ---------------------------------------------------------------
+    // State Variables
+    // ---------------------------------------------------------------
+
+    /// @notice Array of all deployed token addresses
+    address[] private _deployedTokens;
+
+    /// @notice Mapping to check if an address is a deployed token
+    mapping(address => bool) private _isDeployedToken;
+
+    /// @notice Mapping from deployer address to their deployed tokens
+    mapping(address => address[]) private _tokensByDeployer;
+
+    /// @notice Mapping from beneficiary address to their tokens
+    mapping(address => address[]) private _tokensByBeneficiary;
+
+    // ---------------------------------------------------------------
+    // View Functions
+    // ---------------------------------------------------------------
+
+    /// @inheritdoc IERC20Factory
+    function totalTokensDeployed() external view returns (uint256) {
+        return _deployedTokens.length;
+    }
+
+    /// @inheritdoc IERC20Factory
+    function deployedTokens(uint256 index) external view returns (address) {
+        require(index < _deployedTokens.length, "Index out of bounds");
+        return _deployedTokens[index];
+    }
+
+    /// @inheritdoc IERC20Factory
+    function isDeployedToken(address token) external view returns (bool) {
+        return _isDeployedToken[token];
+    }
+
+    /// @inheritdoc IERC20Factory
+    function getTokensByDeployer(address deployer) external view returns (address[] memory) {
+        return _tokensByDeployer[deployer];
+    }
+
+    /// @inheritdoc IERC20Factory
+    function getTokensByBeneficiary(address beneficiary) external view returns (address[] memory) {
+        return _tokensByBeneficiary[beneficiary];
+    }
+
+    // ---------------------------------------------------------------
+    // Deployment Functions
+    // ---------------------------------------------------------------
+
+    /// @inheritdoc IERC20Factory
+    function deployRefundableToken(
+        string calldata name,
+        string calldata symbol,
+        uint256 maxSupply,
+        address beneficiary,
+        address fundingToken
+    ) external returns (address token) {
+        // Validate inputs
+        require(bytes(name).length > 0, "Name cannot be empty");
+        require(bytes(symbol).length > 0, "Symbol cannot be empty");
+        require(maxSupply > 0, "Max supply must be greater than 0");
+        require(beneficiary != address(0), "Beneficiary cannot be zero address");
+        require(fundingToken != address(0), "Funding token cannot be zero address");
+
+        // Deploy new ERC20RefundableTokenSale contract
+        ERC20RefundableTokenSale newToken = new ERC20RefundableTokenSale(
+            name,
+            symbol,
+            maxSupply,
+            fundingToken,
+            beneficiary
+        );
+
+        token = address(newToken);
+
+        // Transfer ownership to the deployer
+        newToken.transferOwnership(msg.sender);
+
+        // Register the token
+        _deployedTokens.push(token);
+        _isDeployedToken[token] = true;
+        _tokensByDeployer[msg.sender].push(token);
+        _tokensByBeneficiary[beneficiary].push(token);
+
+        // Emit event
+        emit RefundableTokenDeployed(
+            token,
+            msg.sender,
+            beneficiary,
+            name,
+            symbol,
+            maxSupply
+        );
+
+        return token;
+    }
+
+    /// @inheritdoc IERC20Factory
+    function deployRefundableToken(DeployRefundableTokenParams calldata params) external returns (address token) {
+        // Validate inputs
+        require(bytes(params.name).length > 0, "Name cannot be empty");
+        require(bytes(params.symbol).length > 0, "Symbol cannot be empty");
+        require(params.maxSupply > 0, "Max supply must be greater than 0");
+        require(params.beneficiary != address(0), "Beneficiary cannot be zero address");
+        require(params.fundingToken != address(0), "Funding token cannot be zero address");
+
+        // Deploy new ERC20RefundableTokenSale contract
+        ERC20RefundableTokenSale newToken = new ERC20RefundableTokenSale(
+            params.name,
+            params.symbol,
+            params.maxSupply,
+            params.fundingToken,
+            params.beneficiary
+        );
+
+        token = address(newToken);
+
+        // Transfer ownership to the deployer
+        newToken.transferOwnership(msg.sender);
+
+        // Register the token
+        _deployedTokens.push(token);
+        _isDeployedToken[token] = true;
+        _tokensByDeployer[msg.sender].push(token);
+        _tokensByBeneficiary[params.beneficiary].push(token);
+
+        // Emit event
+        emit RefundableTokenDeployed(
+            token,
+            msg.sender,
+            params.beneficiary,
+            params.name,
+            params.symbol,
+            params.maxSupply
+        );
+
+        return token;
+    }
+}
