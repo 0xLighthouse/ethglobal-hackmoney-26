@@ -10,7 +10,7 @@ import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 
 /// @notice ERC20 token with refundable purchase rights that decay over time
 contract ERC20Refundable is ERC20, IERC20Refundable {
-  using FixedPointMathLib for uint256;
+    using FixedPointMathLib for uint256;
     // ---------------------------------------------------------------
     // Immutable Constants
     // ---------------------------------------------------------------
@@ -43,16 +43,16 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
     /// @notice Block height when the total refundable tokens were last updated
     uint128 internal _totalRefundableBlockHeight;
 
+    /// @notice Total funding tokens deposited via token purchases
+    uint256 public fundingTokensHeld;
+
     /// @notice Total funding tokens claimed by the agent
     uint256 public totalFundsClaimed;
 
-    /// @notice Total funding tokens refunded from the contract
-    uint256 public totalFundsRefunded;
-
     struct RefundableBalance {
-        uint128 purchasePrice;
-        uint128 originalAmount;
-        uint128 blockHeight;
+        uint256 purchasePrice;
+        uint256 originalAmount;
+        uint256 blockHeight;
     }
 
     /// @notice Per-user refundable token balances
@@ -87,6 +87,30 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
         return block.number - blockHeight;
     }
 
+    /// @notice 
+    function _currentlyRefundable(uint256 originalAmount, uint256 asOfBlockHeight) internal view returns (uint256) {
+      // If the decay has ended, none are refundable
+      if (block.number > refundableDecayEndBlock) {
+        return 0;
+      }
+
+      // If these are from a previous sale, none are refundable
+      if (asOfBlockHeight < refundWindowStartBlock) {
+        return 0;
+      }
+
+      // If the decay has not started, all are refundable
+      if (block.number < refundableDecayStartBlock) {
+        return originalAmount;
+      }
+
+      // Calculate the number of periods and elapsed blocks
+      uint256 periods = refundableDecayEndBlock - asOfBlockHeight;
+      uint256 elapsed = _blocksSince(asOfBlockHeight);
+
+      return originalAmount / periods * (periods - elapsed);
+    }
+
     /// @notice Get the current refundable balance for an account (with decay applied)
     /// @param account Address to query
     /// @return Current refundable token balance after applying decay
@@ -95,38 +119,15 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
     }
 
     function _refundableBalanceOf(address account) internal view returns (uint256) {
-      if (block.number > refundableDecayEndBlock) {
-        return 0;
-      }
-
-      uint128 amountUpdatedAtBlock = _refundableBalances[account].blockHeight;
-      if (amountUpdatedAtBlock < refundWindowStartBlock) {
-        return 0;
-      }
-
       uint256 originalAmount = _refundableBalances[account].originalAmount;
-      if (block.number < refundableDecayStartBlock) {
-        return originalAmount;
-      }
-
-      uint256 periods = refundableDecayEndBlock - amountUpdatedAtBlock;
-      uint256 elapsed = _blocksSince(amountUpdatedAtBlock);
-      return originalAmount / periods * (periods - elapsed);
+      uint256 asOfBlockHeight = _refundableBalances[account].blockHeight;
+      return _currentlyRefundable(originalAmount, asOfBlockHeight);
     }
 
     /// @notice Get the total supply of refundable tokens across all holders (with decay applied)
     /// @return Total refundable supply after applying decay
     function totalRefundableSupply() external view returns (uint256) {
-        if (block.number > refundableDecayEndBlock) {
-          return 0;
-        }
-        if (block.number < refundableDecayStartBlock) {
-          return _totalRefundableTokens;
-        }
-
-        uint256 periods = refundableDecayEndBlock - refundableDecayStartBlock;
-        uint256 elapsed = _blocksSince(refundableDecayStartBlock);
-        return _totalRefundableTokens / periods * (periods - elapsed);
+       return _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight);
     }
 
     /// @notice Check if the refund window is open
@@ -149,15 +150,27 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
         uint256 tokenAmount,
         address receiver
     ) external returns (uint256 refundedTokenAmount, uint256 fundingTokenAmount) {
-        // TODO: Implement refund logic
-        // 1. Calculate current refundable balance with decay
-        // 2. Cap refund at current refundable balance
-        // 3. Calculate proportion of original balance being refunded
-        // 4. Calculate funding token amount to return (only refundable portion)
-        // 5. Update state: reduce refundable balances and funding amounts
-        // 6. Burn tokens from caller
-        // 7. Transfer funding tokens to receiver
-        // 8. Emit Refunded event
+      refundedTokenAmount = _refundableBalanceOf(msg.sender);
+      require(refundedTokenAmount > 0, "No refundable balance");
+
+      if (tokenAmount < refundedTokenAmount) {
+        refundedTokenAmount = tokenAmount;
+      }
+
+      fundingTokenAmount = refundedTokenAmount * _refundableBalances[msg.sender].purchasePrice;
+      // Update user's remaining refundable balance
+      _refundableBalances[msg.sender].originalAmount = _refundableBalances[msg.sender].originalAmount - refundedTokenAmount;
+      _refundableBalances[msg.sender].blockHeight = block.number;
+      
+      // Return tokens to contract
+      _transfer(msg.sender, address(this), refundedTokenAmount);
+
+      // Transfer funding tokens to receiver
+      fundingTokensHeld -= fundingTokenAmount;
+      if (!IERC20(FUNDING_TOKEN).transfer(receiver, fundingTokenAmount)) {
+        revert ERC20TransferFailed();
+      }
+      emit Refunded(msg.sender, receiver, refundedTokenAmount, fundingTokenAmount);
     }
 
     // ---------------------------------------------------------------
@@ -168,61 +181,83 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
     /// @dev Subtracts funds locked for potential refunds from available balance
     /// @return Amount of funding tokens available to claim
     function claimableFunds() external view returns (uint256) {
-        // TODO: Implement claimable funds calculation
-        // 1. Calculate total refundable supply with decay
-        // 2. Calculate total refundable funding (totalFundingDeposited * REFUNDABLE_BPS_START / 10000)
-        // 3. Calculate locked funds for refunds (proportional to remaining refundable supply)
-        // 4. Return (totalFundingDeposited - totalFundsClaimed - lockedForRefunds)
+      return _claimableFunds();
     }
 
-    /// @notice Allows the agent to claim available funds
-    /// @dev Only callable by the AGENT address
-    /// @param amount Maximum amount of funding tokens to claim
-    /// @return amountClaimed Actual amount claimed (may be less than requested)
-    function claimFunds(uint256 amount) external returns (uint256 amountClaimed) {
-        // TODO: Implement claim funds logic
-        // 1. Verify caller is AGENT
-        // 2. Calculate available funds using claimableFunds()
-        // 3. Cap claim at available amount
-        // 4. Update totalFundsClaimed
-        // 5. Transfer funding tokens to AGENT
-        // 6. Emit FundsClaimed event
+    function _claimableFunds() internal view returns (uint256) {
+            // Find what percent of the total refundable tokens are currently refundable
+      uint256 currentlyRefundableTokens = _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight);
+
+      // Multiple that by the total funding tokens held to find the amount of funding tokens which are refundable
+      uint256 lockedFunding = 0;
+      if (_totalRefundableTokens > 0) {
+          lockedFunding = (fundingTokensHeld * currentlyRefundableTokens) / _totalRefundableTokens;
+      }
+
+      // The agent can claim whatever is not locked for refunds
+      return fundingTokensHeld - lockedFunding;
     }
 
-    // ---------------------------------------------------------------
-    // Purchase Function (for testing/minting)
-    // ---------------------------------------------------------------
-
-    /// @notice Purchase tokens with funding token
-    /// @dev Transfers funding tokens from buyer and mints new tokens
-    /// @param buyer Address receiving the tokens
-    /// @param fundingAmount Amount of funding tokens to spend
-    /// @param tokenAmount Amount of tokens to mint
-    function purchase(address buyer, uint256 fundingAmount, uint256 tokenAmount) external {
-        // TODO: Implement purchase logic
-        // 1. Transfer funding tokens from buyer to contract
-        // 2. Mint tokens to buyer
-        // 3. Update refundable balance tracking
-        // 4. Update funding amount tracking
+    /// @notice Allows the agent to claim all available funds. Can be called by anyone.
+    /// @return fundingTokensClaimed Amount of funding tokens which were claimed
+    function claimFundsForBeneficiary() external returns (uint256 fundingTokensClaimed) {
+      fundingTokensClaimed = _claimableFunds();
+      if (!IERC20(FUNDING_TOKEN).transfer(BENEFICIARY, fundingTokensClaimed)) {
+        revert ERC20TransferFailed();
+      }
+      emit FundsClaimedForBeneficiary(fundingTokensClaimed);
+      fundingTokensHeld -= fundingTokensClaimed;
     }
 
-    // ---------------------------------------------------------------
-    // Internal Helper Functions
-    // ---------------------------------------------------------------
+// ---------------------------------------------------------------
+// Ovverride ERC20 functions
+// ---------------------------------------------------------------
 
-    /// @notice Calculate refundable amount with linear decay applied
-    /// @dev Implements time-based decay logic:
-    ///      - Before delay: full refundable amount (originalAmount * REFUNDABLE_BPS_START / 10000)
-    ///      - During decay: linear reduction from REFUNDABLE_BPS_START to 0
-    ///      - After decay: 0
-    /// @param originalAmount The original refundable amount (before decay)
-    /// @return The current refundable amount after applying decay
-    function _calculateRefundableAmount(uint256 originalAmount) internal view returns (uint256) {
-        // TODO: Implement linear decay calculation
-        // 1. Return 0 if originalAmount is 0
-        // 2. Calculate blocks since deployment
-        // 3. If before delay period: return (originalAmount * REFUNDABLE_BPS_START / 10000)
-        // 4. If after decay period: return 0
-        // 5. During decay: calculate remaining BPS and return (originalAmount * remainingBps / 10000)
+
+  function transfer(address to, uint256 amount) public override(ERC20, IERC20) returns (bool) {
+    // This will revert if anything is amiss
+    super.transfer(to, amount);
+
+    // Update the refundable balances of the sender and recipient (using refundable balance first)
+    _transferRefundable(msg.sender, to, amount, false);
+    return true;
+  }
+
+  function _transferRefundable(address from, address to, uint256 transferAmount, bool avoidRefundable) internal {
+    // Find how many refundable tokens the sender has
+    uint256 refundableBalance = _refundableBalanceOf(from);
+
+    // Find sender's total balance
+    uint256 nonRefundableBalance = balanceOf(from) - refundableBalance;
+
+    uint256 amountToSend = 0;
+    // Prioritize sending refundable tokens first
+    if (!avoidRefundable) {
+      amountToSend = transferAmount > refundableBalance ? refundableBalance : transferAmount;
+    } else {
+      // Prioritize sending non-refundable tokens first
+      amountToSend = transferAmount > nonRefundableBalance ? transferAmount - nonRefundableBalance : 0;
     }
+
+    // Update balances with timestamps
+    _refundableBalances[from].originalAmount = refundableBalance - amountToSend;
+    _refundableBalances[from].blockHeight = block.number;
+
+    // Find how what the refund value is of the tokens being sent
+    uint256 refundValue = amountToSend * _refundableBalances[from].purchasePrice;
+    // Find recipients original details, so we can know what the new purchase price should be
+    uint256 recipientOriginalAmount = _refundableBalances[to].originalAmount;
+    uint256 recipientRefundValue = recipientOriginalAmount * _refundableBalances[to].purchasePrice;
+    uint256 recipientNewOriginalAmount = recipientOriginalAmount + amountToSend;
+
+    _refundableBalances[to].originalAmount = recipientNewOriginalAmount;
+    _refundableBalances[to].purchasePrice = (recipientRefundValue + refundValue) / recipientNewOriginalAmount;
+    _refundableBalances[to].blockHeight = block.number;
+  }
+
+  function transferFrom(address from, address to, uint256 amount) public override(ERC20, IERC20) returns (bool) {
+    super.transferFrom(from, to, amount);
+    _transferRefundable(from, to, amount, false);
+    return true;
+  }
 }

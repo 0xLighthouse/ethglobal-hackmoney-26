@@ -16,6 +16,7 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
     uint256 public totalFundingDeposited; // Total funding ever deposited
     uint256 public totalFundsClaimed;
     uint256 public totalFundsRefunded;
+    uint256 public fundingTokensHeld;
 
     // Track refundable balances per user
     mapping(address => uint256) private _refundableBalances;
@@ -173,18 +174,20 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
         return availableFunds;
     }
 
-    function claimFunds(uint256 amount) external returns (uint256 amountClaimed) {
+    function claimFundsForBeneficiary() external returns (uint256 fundingTokensClaimed) {
         require(msg.sender == BENEFICIARY, "Only beneficiary can claim");
 
         uint256 available = this.claimableFunds();
-        amountClaimed = amount > available ? available : amount;
-        require(amountClaimed > 0, "No funds available");
+        fundingTokensClaimed = available;
+        require(fundingTokensClaimed > 0, "No funds available");
 
-        totalFundsClaimed += amountClaimed;
+        totalFundsClaimed += fundingTokensClaimed;
 
-        IERC20(FUNDING_TOKEN).transfer(BENEFICIARY, amountClaimed);
+        if (!IERC20(FUNDING_TOKEN).transfer(BENEFICIARY, fundingTokensClaimed)) {
+            revert("Transfer failed");
+        }
 
-        emit FundsClaimed(amountClaimed);
+        emit FundsClaimedForBeneficiary(fundingTokensClaimed);
     }
 
     /// @notice Calculate refundable amount based on decay

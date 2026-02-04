@@ -348,7 +348,7 @@ contract ERC20RefundableTest is Test {
         emit FundsClaimed(claimable);
 
         vm.prank(beneficiary);
-        uint256 claimed = token.claimFunds(claimable);
+        uint256 claimed = token.claimFundsForBeneficiary();
 
         assertEq(claimed, claimable);
         assertEq(fundingToken.balanceOf(beneficiary), beneficiaryBalanceBefore + claimed);
@@ -363,7 +363,7 @@ contract ERC20RefundableTest is Test {
         token.purchase(alice, fundingAmount, tokenAmount);
 
         vm.expectRevert("Only beneficiary can claim");
-        token.claimFunds(100 ether);
+        token.claimFundsForBeneficiary();
         vm.stopPrank();
     }
 
@@ -379,7 +379,7 @@ contract ERC20RefundableTest is Test {
         uint256 claimable = token.claimableFunds();
 
         vm.prank(beneficiary);
-        uint256 claimed = token.claimFunds(claimable * 2);
+        uint256 claimed = token.claimFundsForBeneficiary();
 
         assertEq(claimed, claimable);
     }
@@ -387,7 +387,7 @@ contract ERC20RefundableTest is Test {
     function test_ClaimFundsFailsWhenNoFundsAvailable() public {
         vm.prank(beneficiary);
         vm.expectRevert("No funds available");
-        token.claimFunds(100 ether);
+        token.claimFundsForBeneficiary();
     }
 
     // ---------------------------------------------------------------
@@ -468,7 +468,7 @@ contract ERC20RefundableTest is Test {
         // Agent claims initial available funds
         uint256 initialClaimable = token.claimableFunds();
         vm.prank(beneficiary);
-        token.claimFunds(initialClaimable);
+        token.claimFundsForBeneficiary();
 
         // Time passes
         vm.roll(block.number + 50);
@@ -485,7 +485,7 @@ contract ERC20RefundableTest is Test {
         uint256 secondClaimable = token.claimableFunds();
         if (secondClaimable > 0) {
             vm.prank(beneficiary);
-            token.claimFunds(secondClaimable);
+            token.claimFundsForBeneficiary();
         }
 
         // Even more time passes (past decay)
@@ -498,7 +498,7 @@ contract ERC20RefundableTest is Test {
         uint256 finalClaimable = token.claimableFunds();
         if (finalClaimable > 0) {
             vm.prank(beneficiary);
-            token.claimFunds(finalClaimable);
+            token.claimFundsForBeneficiary();
         }
 
         // Alice still has tokens but they're not refundable

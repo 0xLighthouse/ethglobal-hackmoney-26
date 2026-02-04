@@ -31,12 +31,12 @@ interface IERC20Refundable is IERC20 {
     /// @notice Initial refundable percentage in basis points (e.g., 8000 = 80%)
     function refundableBpsAtStart() external view returns (uint64);
 
+    /// @notice Total funding tokens deposited via token purchases
+    function fundingTokensHeld() external view returns (uint256);
+
     /// @notice Total funding tokens claimed by the beneficiary
     function totalFundsClaimed() external view returns (uint256);
-
-    /// @notice Total funding tokens refunded from the contract
-    function totalFundsRefunded() external view returns (uint256);
-    
+  
     // ---------------------------------------------------------------
     // Refund-specific views
     // ---------------------------------------------------------------
@@ -74,8 +74,9 @@ interface IERC20Refundable is IERC20 {
     /// @notice Reports how many funds are available for the beneficiary to claim
     function claimableFunds() external view returns (uint256);
 
-    /// @notice Allows the beneficiary to claim funds that have already been released
-    function claimFunds(uint256 amount) external returns (uint256 amountClaimed);
+    /// @notice Allows anyone to claim all available funds for the beneficiary
+    /// @return fundingTokensClaimed Amount of funding tokens which were claimed
+    function claimFundsForBeneficiary() external returns (uint256 fundingTokensClaimed);
     
     // ---------------------------------------------------------------
     // Events
@@ -90,7 +91,10 @@ interface IERC20Refundable is IERC20 {
     );
 
     /// @notice Emitted when funds are claimed by the beneficiary.
-    event FundsClaimed(
-        uint256 fundingTokenAmount
+    event FundsClaimedForBeneficiary(
+        uint256 fundingTokensClaimed
     );
+
+    /// @notice Emitted when a transfer fails.
+    error ERC20TransferFailed();
 }
