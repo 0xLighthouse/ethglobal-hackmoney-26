@@ -1,0 +1,137 @@
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+scalar BigInt
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type ViewPageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+type Meta {
+  status: JSON
+}
+
+type Query {
+  refundableTokenDeployment(id: String!): refundableTokenDeployment
+  refundableTokenDeployments(where: refundableTokenDeploymentFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): refundableTokenDeploymentPage!
+  _meta: Meta
+}
+
+type refundableTokenDeployment {
+  id: String!
+  token: String!
+  deployer: String!
+  beneficiary: String!
+  name: String!
+  symbol: String!
+  maxSupply: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+}
+
+type refundableTokenDeploymentPage {
+  items: [refundableTokenDeployment!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input refundableTokenDeploymentFilter {
+  AND: [refundableTokenDeploymentFilter]
+  OR: [refundableTokenDeploymentFilter]
+  id: String
+  id_not: String
+  id_in: [String]
+  id_not_in: [String]
+  id_contains: String
+  id_not_contains: String
+  id_starts_with: String
+  id_ends_with: String
+  id_not_starts_with: String
+  id_not_ends_with: String
+  token: String
+  token_not: String
+  token_in: [String]
+  token_not_in: [String]
+  token_contains: String
+  token_not_contains: String
+  token_starts_with: String
+  token_ends_with: String
+  token_not_starts_with: String
+  token_not_ends_with: String
+  deployer: String
+  deployer_not: String
+  deployer_in: [String]
+  deployer_not_in: [String]
+  deployer_contains: String
+  deployer_not_contains: String
+  deployer_starts_with: String
+  deployer_ends_with: String
+  deployer_not_starts_with: String
+  deployer_not_ends_with: String
+  beneficiary: String
+  beneficiary_not: String
+  beneficiary_in: [String]
+  beneficiary_not_in: [String]
+  beneficiary_contains: String
+  beneficiary_not_contains: String
+  beneficiary_starts_with: String
+  beneficiary_ends_with: String
+  beneficiary_not_starts_with: String
+  beneficiary_not_ends_with: String
+  name: String
+  name_not: String
+  name_in: [String]
+  name_not_in: [String]
+  name_contains: String
+  name_not_contains: String
+  name_starts_with: String
+  name_ends_with: String
+  name_not_starts_with: String
+  name_not_ends_with: String
+  symbol: String
+  symbol_not: String
+  symbol_in: [String]
+  symbol_not_in: [String]
+  symbol_contains: String
+  symbol_not_contains: String
+  symbol_starts_with: String
+  symbol_ends_with: String
+  symbol_not_starts_with: String
+  symbol_not_ends_with: String
+  maxSupply: BigInt
+  maxSupply_not: BigInt
+  maxSupply_in: [BigInt]
+  maxSupply_not_in: [BigInt]
+  maxSupply_gt: BigInt
+  maxSupply_lt: BigInt
+  maxSupply_gte: BigInt
+  maxSupply_lte: BigInt
+  blockNumber: BigInt
+  blockNumber_not: BigInt
+  blockNumber_in: [BigInt]
+  blockNumber_not_in: [BigInt]
+  blockNumber_gt: BigInt
+  blockNumber_lt: BigInt
+  blockNumber_gte: BigInt
+  blockNumber_lte: BigInt
+  txHash: String
+  txHash_not: String
+  txHash_in: [String]
+  txHash_not_in: [String]
+  txHash_contains: String
+  txHash_not_contains: String
+  txHash_starts_with: String
+  txHash_ends_with: String
+  txHash_not_starts_with: String
+  txHash_not_ends_with: String
+}
