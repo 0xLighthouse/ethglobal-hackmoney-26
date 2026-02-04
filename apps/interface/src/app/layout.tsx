@@ -1,5 +1,7 @@
 import "./globals.css";
 import type { ReactNode } from "react";
+import { Web3Provider } from "@/providers/web3";
+import DefaultLayout from "@/components/default-layout";
 
 export const metadata = {
   title: "Interface",
@@ -13,7 +15,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Web3Provider>
+          <DefaultLayout>{children}</DefaultLayout>
+        </Web3Provider>
+      </body>
     </html>
   );
 }
