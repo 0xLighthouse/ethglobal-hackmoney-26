@@ -51,6 +51,22 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
     }
 
     // ---------------------------------------------------------------
+    // Override claimable funds calculation
+    // ---------------------------------------------------------------
+
+    /// @notice Override to calculate claimable funds using the fixed purchase price
+    function _claimableFunds() internal view override returns (uint256) {
+        // Find what percent of the total refundable tokens are currently refundable
+        uint256 currentlyRefundableTokens = _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight);
+
+        // Calculate locked funding using the purchase price
+        uint256 lockedFunding = currentlyRefundableTokens * tokenSalePurchasePrice;
+
+        // The beneficiary can claim whatever is not locked for refunds
+        return fundingTokensHeld > lockedFunding ? fundingTokensHeld - lockedFunding : 0;
+    }
+
+    // ---------------------------------------------------------------
     // Buyer actions
     // ---------------------------------------------------------------
 
@@ -65,6 +81,9 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         if (fundingTokenAmount > maxFundingAmount) {
             revert MaxFundingAmountExceeded();
         }
+
+        // Update remaining tokens for sale
+        remainingTokensForSale -= amount;
 
         // Transfer funding tokens from buyer to contract
         if (!IERC20(FUNDING_TOKEN).transferFrom(msg.sender, address(this), fundingTokenAmount)) {
@@ -87,6 +106,12 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         _refundableBalances[msg.sender].purchasePrice = tokenSalePurchasePrice;
         _refundableBalances[msg.sender].blockHeight = uint64(block.number);
 
+        // Update total refundable tokens
+        _totalRefundableTokens += refundableBalanceAtStart;
+        _totalRefundableBlockHeight = uint64(block.number);
+
         emit Purchased(msg.sender, amount, fundingTokenAmount);
+
+        return amount;
     }
 }
