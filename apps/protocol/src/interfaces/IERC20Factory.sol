@@ -9,24 +9,20 @@ interface IERC20Factory {
     // Structs
     // ---------------------------------------------------------------
 
-    /// @notice Parameters for deploying an ERC20Refundable token
-    struct TokenDeploymentParams {
+    /// @notice Parameters for deploying an ERC20RefundableTokenSale contract
+    struct DeployRefundableTokenParams {
         string name;
         string symbol;
-        uint256 initialSupply;
-        address fundingToken;
+        uint256 maxSupply;
         address beneficiary;
-        uint128 refundWindowStartBlock;
-        uint64 refundableDecayStartBlock;
-        uint64 refundableDecayEndBlock;
-        uint64 refundableBpsAtStart;
+        address fundingToken;
     }
 
     // ---------------------------------------------------------------
     // State Variables
     // ---------------------------------------------------------------
 
-    /// @notice Returns the total number of tokens deployed by this factory
+    /// @notice Returns the total number of token sales deployed by this factory
     function totalTokensDeployed() external view returns (uint256);
 
     /// @notice Returns the token address at a specific index
@@ -41,42 +37,46 @@ interface IERC20Factory {
     /// @param deployer Address of the deployer
     function getTokensByDeployer(address deployer) external view returns (address[] memory);
 
+    /// @notice Returns all tokens for a specific beneficiary
+    /// @param beneficiary Address of the beneficiary
+    function getTokensByBeneficiary(address beneficiary) external view returns (address[] memory);
+
     // ---------------------------------------------------------------
     // Deployment Actions
     // ---------------------------------------------------------------
 
-    /// @notice Deploy a new ERC20Refundable token with specified parameters
-    /// @param params Token deployment parameters
-    /// @return tokenAddress Address of the newly deployed token
-    function deployToken(TokenDeploymentParams calldata params) external returns (address tokenAddress);
-
-    /// @notice Deploy a new ERC20Refundable token with simple parameters
+    /// @notice Deploy a new ERC20RefundableTokenSale contract
     /// @param name Token name
     /// @param symbol Token symbol
-    /// @param initialSupply Initial supply of tokens
-    /// @param fundingToken Address of the funding token
-    /// @param beneficiary Address of the beneficiary
-    /// @return tokenAddress Address of the newly deployed token
-    function deployTokenSimple(
+    /// @param maxSupply Maximum supply of tokens
+    /// @param beneficiary Address of the beneficiary who receives funds
+    /// @param fundingToken Address of the token used for purchases (e.g., USDC)
+    /// @return token Address of the newly deployed token contract
+    function deployRefundableToken(
         string calldata name,
         string calldata symbol,
-        uint256 initialSupply,
-        address fundingToken,
-        address beneficiary
-    ) external returns (address tokenAddress);
+        uint256 maxSupply,
+        address beneficiary,
+        address fundingToken
+    ) external returns (address token);
+
+    /// @notice Deploy a new ERC20RefundableTokenSale contract using struct
+    /// @param params Deployment parameters
+    /// @return token Address of the newly deployed token contract
+    function deployRefundableToken(DeployRefundableTokenParams calldata params) external returns (address token);
 
     // ---------------------------------------------------------------
     // Events
     // ---------------------------------------------------------------
 
-    /// @notice Emitted when a new token is deployed
-    event TokenDeployed(
-        address indexed tokenAddress,
+    /// @notice Emitted when a new refundable token is deployed
+    event RefundableTokenDeployed(
+        address indexed token,
         address indexed deployer,
         address indexed beneficiary,
         string name,
         string symbol,
-        uint256 initialSupply
+        uint256 maxSupply
     );
 
 }
