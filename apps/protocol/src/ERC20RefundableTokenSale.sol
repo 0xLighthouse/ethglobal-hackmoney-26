@@ -74,4 +74,6 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
 }
 
 
-//// Create sale: Cant' start unless previous one is ended
+// Create sale: Cant' start unless previous one is ended
+// When tokens are sold, add price to totalFundingDeposited
+// At start of sale, resent total refundable tokens to 0
