@@ -21,12 +21,7 @@ contract ERC20RefundableTest is Test {
     uint64 public constant REFUNDABLE_DECAY_BLOCK_DELAY = 100;
     uint64 public constant REFUNDABLE_DECAY_BLOCK_DURATION = 200;
 
-    event Refunded(
-        address indexed account,
-        address indexed receiver,
-        uint256 tokenAmount,
-        uint256 fundingTokenAmount
-    );
+    event Refunded(address indexed account, address indexed receiver, uint256 tokenAmount, uint256 fundingTokenAmount);
 
     event FundsClaimed(uint256 fundingTokenAmount);
 
@@ -224,7 +219,7 @@ contract ERC20RefundableTest is Test {
         uint256 refundableBalance = token.refundableBalanceOf(alice);
         uint256 refundAmount = refundableBalance / 2;
 
-        (uint256 refundedTokens, ) = token.refund(refundAmount, alice);
+        (uint256 refundedTokens,) = token.refund(refundAmount, alice);
         vm.stopPrank();
 
         assertEq(refundedTokens, refundAmount);
@@ -242,7 +237,7 @@ contract ERC20RefundableTest is Test {
         uint256 refundableBalance = token.refundableBalanceOf(alice);
 
         // Try to refund more than refundable balance
-        (uint256 refundedTokens, ) = token.refund(refundableBalance * 2, alice);
+        (uint256 refundedTokens,) = token.refund(refundableBalance * 2, alice);
         vm.stopPrank();
 
         assertEq(refundedTokens, refundableBalance);
@@ -448,11 +443,7 @@ contract ERC20RefundableTest is Test {
         // Check total refundable supply
         uint256 totalRefundable = token.totalRefundableSupply();
         assertGt(totalRefundable, 0);
-        assertApproxEqAbs(
-            totalRefundable,
-            token.refundableBalanceOf(bob) + token.refundableBalanceOf(carol),
-            2
-        );
+        assertApproxEqAbs(totalRefundable, token.refundableBalanceOf(bob) + token.refundableBalanceOf(carol), 2);
     }
 
     function test_FullLifecycleScenario() public {

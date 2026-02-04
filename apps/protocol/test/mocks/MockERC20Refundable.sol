@@ -69,8 +69,8 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
         return _calculateRefundableAmount(_totalRefundableSupply);
     }
 
-    function refundWindowStartBlock() external view returns (uint128) {
-        return uint128(deploymentBlock);
+    function refundWindowStartBlock() external view returns (uint64) {
+        return uint64(deploymentBlock);
     }
 
     function refundableDecayStartBlock() external view returns (uint64) {
@@ -100,10 +100,10 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
         return _originalFundingAmounts[account];
     }
 
-    function refund(
-        uint256 tokenAmount,
-        address receiver
-    ) external returns (uint256 refundedTokenAmount, uint256 fundingTokenAmount) {
+    function refund(uint256 tokenAmount, address receiver)
+        external
+        returns (uint256 refundedTokenAmount, uint256 fundingTokenAmount)
+    {
         uint256 currentRefundableBalance = _calculateRefundableAmount(_refundableBalances[msg.sender]);
 
         // Cap at current refundable balance (after decay)
@@ -163,13 +163,10 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
             lockedForRefunds = (totalRefundableFunding * totalRefundable) / _totalRefundableSupply;
         }
 
-        uint256 fundsInContract = totalFundingDeposited > totalFundsClaimed
-            ? totalFundingDeposited - totalFundsClaimed
-            : 0;
+        uint256 fundsInContract =
+            totalFundingDeposited > totalFundsClaimed ? totalFundingDeposited - totalFundsClaimed : 0;
 
-        uint256 availableFunds = fundsInContract > lockedForRefunds
-            ? fundsInContract - lockedForRefunds
-            : 0;
+        uint256 availableFunds = fundsInContract > lockedForRefunds ? fundsInContract - lockedForRefunds : 0;
 
         return availableFunds;
     }
@@ -209,8 +206,8 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
 
         // During decay
         uint256 blocksSinceDecayStart = blocksSinceDeployment - REFUNDABLE_DECAY_BLOCK_DELAY;
-        uint256 remainingBps = REFUNDABLE_BPS_START -
-            (REFUNDABLE_BPS_START * blocksSinceDecayStart) / REFUNDABLE_DECAY_BLOCK_DURATION;
+        uint256 remainingBps =
+            REFUNDABLE_BPS_START - (REFUNDABLE_BPS_START * blocksSinceDecayStart) / REFUNDABLE_DECAY_BLOCK_DURATION;
 
         return (originalAmount * remainingBps) / 10000;
     }
