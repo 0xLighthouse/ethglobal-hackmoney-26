@@ -1,0 +1,39 @@
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #ffffff;
+  color: #111827;
+}
+
+main {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+}
+
+h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin: 0 0 12px;
+}
+
+p {
+  max-width: 48ch;
+  line-height: 1.6;
+  margin: 0;
+  color: #4b5563;
+}
