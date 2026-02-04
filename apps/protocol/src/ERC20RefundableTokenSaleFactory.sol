@@ -2,10 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "./ERC20RefundableTokenSale.sol";
-import "./interfaces/IERC20Factory.sol";
+import "./interfaces/IERC20RefundableTokenSaleFactory.sol";
 
 /// @notice Factory contract for deploying ERC20RefundableTokenSale contracts
-contract ERC20Factory is IERC20Factory {
+contract ERC20RefundableTokenSaleFactory is IERC20RefundableTokenSaleFactory {
     // ---------------------------------------------------------------
     // State Variables
     // ---------------------------------------------------------------
@@ -26,28 +26,28 @@ contract ERC20Factory is IERC20Factory {
     // View Functions
     // ---------------------------------------------------------------
 
-    /// @inheritdoc IERC20Factory
+    /// @inheritdoc IERC20RefundableTokenSaleFactory
     function totalTokensDeployed() external view returns (uint256) {
         return _deployedTokens.length;
     }
 
-    /// @inheritdoc IERC20Factory
+    /// @inheritdoc IERC20RefundableTokenSaleFactory
     function deployedTokens(uint256 index) external view returns (address) {
         require(index < _deployedTokens.length, "Index out of bounds");
         return _deployedTokens[index];
     }
 
-    /// @inheritdoc IERC20Factory
+    /// @inheritdoc IERC20RefundableTokenSaleFactory
     function isDeployedToken(address token) external view returns (bool) {
         return _isDeployedToken[token];
     }
 
-    /// @inheritdoc IERC20Factory
+    /// @inheritdoc IERC20RefundableTokenSaleFactory
     function getTokensByDeployer(address deployer) external view returns (address[] memory) {
         return _tokensByDeployer[deployer];
     }
 
-    /// @inheritdoc IERC20Factory
+    /// @inheritdoc IERC20RefundableTokenSaleFactory
     function getTokensByBeneficiary(address beneficiary) external view returns (address[] memory) {
         return _tokensByBeneficiary[beneficiary];
     }
@@ -56,7 +56,7 @@ contract ERC20Factory is IERC20Factory {
     // Deployment Functions
     // ---------------------------------------------------------------
 
-    /// @inheritdoc IERC20Factory
+    /// @inheritdoc IERC20RefundableTokenSaleFactory
     function deployRefundableToken(
         string calldata name,
         string calldata symbol,
@@ -104,7 +104,7 @@ contract ERC20Factory is IERC20Factory {
         return token;
     }
 
-    /// @inheritdoc IERC20Factory
+    /// @inheritdoc IERC20RefundableTokenSaleFactory
     function deployRefundableToken(DeployRefundableTokenParams calldata params) external returns (address token) {
         // Validate inputs
         require(bytes(params.name).length > 0, "Name cannot be empty");
