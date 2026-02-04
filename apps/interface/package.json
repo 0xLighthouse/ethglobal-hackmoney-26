@@ -11,6 +11,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@repo/abis": "workspace:*",
     "@privy-io/react-auth": "^3.13.1",
     "@web3icons/react": "^4.1.17",
     "class-variance-authority": "^0.7.1",

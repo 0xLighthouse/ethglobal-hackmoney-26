@@ -16,12 +16,16 @@ const factoryDeployment = resolveDeployment(
   "apps/protocol/broadcast/DeployFactory.s.sol/84532/run-latest.json"
 );
 
+
+console.log('factoryDeployment');
+console.log(factoryDeployment);
+
 export default createConfig({
   chains: {
     baseSepolia: {
       id: baseSepolia.id,
       rpc: rpcUrl,
-      pollingInterval: 30_000
+      // pollingInterval: 30_000
     }
   },
   contracts: {

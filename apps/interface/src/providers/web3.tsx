@@ -1,7 +1,7 @@
 "use client";
 
 import { PrivyProvider, usePrivy, useWallets } from "@privy-io/react-auth";
-import { mainnet } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 import {
@@ -13,7 +13,7 @@ import {
 } from "viem";
 import { useAppStore } from "@/stores/app";
 
-const chain = mainnet;
+const chain = baseSepolia;
 
 // Create shared public client instance
 const publicClient = createPublicClient({
