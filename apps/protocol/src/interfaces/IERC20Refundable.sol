@@ -8,17 +8,34 @@ interface IERC20Refundable is IERC20 {
     // ---------------------------------------------------------------
     // Constants
     // ---------------------------------------------------------------
- 
+
     /// @notice The asset that was used for purchasing tokens
     function FUNDING_TOKEN() external view returns (address);
-    /// How much of the tokens are immediately refundable
-    function REFUNDABLE_BPS_START() external view returns (uint64);
-    /// How many blocks until refund decay starts
-    function REFUNDABLE_DECAY_BLOCK_DELAY() external view returns (uint64);
-    /// How many blocks until decay is depleted
-    function REFUNDABLE_DECAY_BLOCK_DURATION() external view returns (uint64);
-    /// The address of the agent (who is able to claim funds from the sale)
-    function AGENT() external view returns (address);
+
+    /// @notice The address of the beneficiary who can claim funds
+    function BENEFICIARY() external view returns (address);
+
+    // ---------------------------------------------------------------
+    // State Variables
+    // ---------------------------------------------------------------
+
+    /// @notice Block height when the refund window starts
+    function refundWindowStartBlock() external view returns (uint128);
+
+    /// @notice Block height when decay starts
+    function refundableDecayStartBlock() external view returns (uint64);
+
+    /// @notice Block height when decay ends
+    function refundableDecayEndBlock() external view returns (uint64);
+
+    /// @notice Initial refundable percentage in basis points (e.g., 8000 = 80%)
+    function refundableBpsAtStart() external view returns (uint64);
+
+    /// @notice Total funding tokens claimed by the beneficiary
+    function totalFundsClaimed() external view returns (uint256);
+
+    /// @notice Total funding tokens refunded from the contract
+    function totalFundsRefunded() external view returns (uint256);
     
     // ---------------------------------------------------------------
     // Refund-specific views
@@ -29,6 +46,9 @@ interface IERC20Refundable is IERC20 {
 
     /// @notice Total supply of tokens that are still refundable across all holders.
     function totalRefundableSupply() external view returns (uint256);
+
+    /// @notice Check if the refund window is open
+    function refundWindowOpen() external view returns (bool);
 
     // ---------------------------------------------------------------
     // Token-holder actions
@@ -48,13 +68,13 @@ interface IERC20Refundable is IERC20 {
         returns (uint256 refundedTokenAmount, uint256 fundingTokenAmount);
 
     // ---------------------------------------------------------------
-    // Agent actions
+    // Beneficiary actions
     // ---------------------------------------------------------------
-    
-    /// @notice Reports how many funds are available for the agent to claim
+
+    /// @notice Reports how many funds are available for the beneficiary to claim
     function claimableFunds() external view returns (uint256);
-    
-    /// @notice Allows the agent to claim funds that have already been released
+
+    /// @notice Allows the beneficiary to claim funds that have already been released
     function claimFunds(uint256 amount) external returns (uint256 amountClaimed);
     
     // ---------------------------------------------------------------
@@ -69,7 +89,7 @@ interface IERC20Refundable is IERC20 {
         uint256 fundingTokenAmount
     );
 
-    /// @notice Emitted when funds are claimed by the agent.
+    /// @notice Emitted when funds are claimed by the beneficiary.
     event FundsClaimed(
         uint256 fundingTokenAmount
     );

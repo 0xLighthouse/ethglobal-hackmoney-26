@@ -12,7 +12,7 @@ contract ERC20RefundableTest is Test {
     MockERC20Refundable public token;
     MockERC20 public fundingToken;
 
-    address public agent;
+    address public beneficiary;
     address public alice;
     address public bob;
     address public carol;
@@ -32,7 +32,7 @@ contract ERC20RefundableTest is Test {
 
     function setUp() public {
         // Setup accounts
-        agent = makeAddr("agent");
+        beneficiary = makeAddr("beneficiary");
         alice = makeAddr("alice");
         bob = makeAddr("bob");
         carol = makeAddr("carol");
@@ -51,7 +51,7 @@ contract ERC20RefundableTest is Test {
             refundableBpsStart: REFUNDABLE_BPS_START,
             refundableDecayBlockDelay: REFUNDABLE_DECAY_BLOCK_DELAY,
             refundableDecayBlockDuration: REFUNDABLE_DECAY_BLOCK_DURATION,
-            agent: agent
+            beneficiary: beneficiary
         });
 
         address tokenAddress = factory.deployToken(params);
@@ -81,7 +81,7 @@ contract ERC20RefundableTest is Test {
             refundableBpsStart: REFUNDABLE_BPS_START,
             refundableDecayBlockDelay: REFUNDABLE_DECAY_BLOCK_DELAY,
             refundableDecayBlockDuration: REFUNDABLE_DECAY_BLOCK_DURATION,
-            agent: agent
+            beneficiary: beneficiary
         });
 
         address secondToken = factory.deployToken(params);
@@ -100,7 +100,7 @@ contract ERC20RefundableTest is Test {
         assertEq(token.REFUNDABLE_BPS_START(), REFUNDABLE_BPS_START);
         assertEq(token.REFUNDABLE_DECAY_BLOCK_DELAY(), REFUNDABLE_DECAY_BLOCK_DELAY);
         assertEq(token.REFUNDABLE_DECAY_BLOCK_DURATION(), REFUNDABLE_DECAY_BLOCK_DURATION);
-        assertEq(token.AGENT(), agent);
+        assertEq(token.BENEFICIARY(), beneficiary);
     }
 
     // ---------------------------------------------------------------
@@ -342,16 +342,16 @@ contract ERC20RefundableTest is Test {
         vm.stopPrank();
 
         uint256 claimable = token.claimableFunds();
-        uint256 agentBalanceBefore = fundingToken.balanceOf(agent);
+        uint256 beneficiaryBalanceBefore = fundingToken.balanceOf(beneficiary);
 
         vm.expectEmit(false, false, false, true);
         emit FundsClaimed(claimable);
 
-        vm.prank(agent);
+        vm.prank(beneficiary);
         uint256 claimed = token.claimFunds(claimable);
 
         assertEq(claimed, claimable);
-        assertEq(fundingToken.balanceOf(agent), agentBalanceBefore + claimed);
+        assertEq(fundingToken.balanceOf(beneficiary), beneficiaryBalanceBefore + claimed);
     }
 
     function test_ClaimFundsFailsForNonAgent() public {
@@ -362,7 +362,7 @@ contract ERC20RefundableTest is Test {
         fundingToken.approve(address(token), fundingAmount);
         token.purchase(alice, fundingAmount, tokenAmount);
 
-        vm.expectRevert("Only agent can claim");
+        vm.expectRevert("Only beneficiary can claim");
         token.claimFunds(100 ether);
         vm.stopPrank();
     }
@@ -378,14 +378,14 @@ contract ERC20RefundableTest is Test {
 
         uint256 claimable = token.claimableFunds();
 
-        vm.prank(agent);
+        vm.prank(beneficiary);
         uint256 claimed = token.claimFunds(claimable * 2);
 
         assertEq(claimed, claimable);
     }
 
     function test_ClaimFundsFailsWhenNoFundsAvailable() public {
-        vm.prank(agent);
+        vm.prank(beneficiary);
         vm.expectRevert("No funds available");
         token.claimFunds(100 ether);
     }
@@ -467,7 +467,7 @@ contract ERC20RefundableTest is Test {
 
         // Agent claims initial available funds
         uint256 initialClaimable = token.claimableFunds();
-        vm.prank(agent);
+        vm.prank(beneficiary);
         token.claimFunds(initialClaimable);
 
         // Time passes
@@ -484,7 +484,7 @@ contract ERC20RefundableTest is Test {
         // Agent claims more funds
         uint256 secondClaimable = token.claimableFunds();
         if (secondClaimable > 0) {
-            vm.prank(agent);
+            vm.prank(beneficiary);
             token.claimFunds(secondClaimable);
         }
 
@@ -497,7 +497,7 @@ contract ERC20RefundableTest is Test {
         // Agent can claim remaining funds
         uint256 finalClaimable = token.claimableFunds();
         if (finalClaimable > 0) {
-            vm.prank(agent);
+            vm.prank(beneficiary);
             token.claimFunds(finalClaimable);
         }
 

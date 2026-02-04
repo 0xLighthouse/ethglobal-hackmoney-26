@@ -10,11 +10,12 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
     uint64 public immutable REFUNDABLE_BPS_START;
     uint64 public immutable REFUNDABLE_DECAY_BLOCK_DELAY;
     uint64 public immutable REFUNDABLE_DECAY_BLOCK_DURATION;
-    address public immutable AGENT;
+    address public immutable BENEFICIARY;
 
     uint256 public immutable deploymentBlock;
     uint256 public totalFundingDeposited; // Total funding ever deposited
     uint256 public totalFundsClaimed;
+    uint256 public totalFundsRefunded;
 
     // Track refundable balances per user
     mapping(address => uint256) private _refundableBalances;
@@ -30,13 +31,13 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
         uint64 refundableBpsStart,
         uint64 refundableDecayBlockDelay,
         uint64 refundableDecayBlockDuration,
-        address agent
+        address beneficiary
     ) ERC20(name, symbol) {
         FUNDING_TOKEN = fundingToken;
         REFUNDABLE_BPS_START = refundableBpsStart;
         REFUNDABLE_DECAY_BLOCK_DELAY = refundableDecayBlockDelay;
         REFUNDABLE_DECAY_BLOCK_DURATION = refundableDecayBlockDuration;
-        AGENT = agent;
+        BENEFICIARY = beneficiary;
         deploymentBlock = block.number;
     }
 
@@ -65,6 +66,28 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
 
     function totalRefundableSupply() external view returns (uint256) {
         return _calculateRefundableAmount(_totalRefundableSupply);
+    }
+
+    function refundWindowStartBlock() external view returns (uint128) {
+        return uint128(deploymentBlock);
+    }
+
+    function refundableDecayStartBlock() external view returns (uint64) {
+        return uint64(deploymentBlock + REFUNDABLE_DECAY_BLOCK_DELAY);
+    }
+
+    function refundableDecayEndBlock() external view returns (uint64) {
+        return uint64(deploymentBlock + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION);
+    }
+
+    function refundableBpsAtStart() external view returns (uint64) {
+        return REFUNDABLE_BPS_START;
+    }
+
+    function refundWindowOpen() external view returns (bool) {
+        uint256 blocksSinceDeployment = block.number - deploymentBlock;
+        uint256 decayEndBlock = REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION;
+        return blocksSinceDeployment <= decayEndBlock;
     }
 
     // Debug helpers
@@ -151,7 +174,7 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
     }
 
     function claimFunds(uint256 amount) external returns (uint256 amountClaimed) {
-        require(msg.sender == AGENT, "Only agent can claim");
+        require(msg.sender == BENEFICIARY, "Only beneficiary can claim");
 
         uint256 available = this.claimableFunds();
         amountClaimed = amount > available ? available : amount;
@@ -159,7 +182,7 @@ contract MockERC20Refundable is ERC20, IERC20Refundable {
 
         totalFundsClaimed += amountClaimed;
 
-        IERC20(FUNDING_TOKEN).transfer(AGENT, amountClaimed);
+        IERC20(FUNDING_TOKEN).transfer(BENEFICIARY, amountClaimed);
 
         emit FundsClaimed(amountClaimed);
     }

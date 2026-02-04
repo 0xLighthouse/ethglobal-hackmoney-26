@@ -7,7 +7,7 @@ import "./MockERC20Refundable.sol";
 contract MockERC20RefundableFactory {
     event TokenDeployed(
         address indexed token,
-        address indexed agent,
+        address indexed beneficiary,
         address indexed fundingToken,
         string name,
         string symbol
@@ -20,7 +20,7 @@ contract MockERC20RefundableFactory {
         uint64 refundableBpsStart;
         uint64 refundableDecayBlockDelay;
         uint64 refundableDecayBlockDuration;
-        address agent;
+        address beneficiary;
     }
 
     address[] public deployedTokens;
@@ -36,7 +36,7 @@ contract MockERC20RefundableFactory {
             params.refundableBpsStart,
             params.refundableDecayBlockDelay,
             params.refundableDecayBlockDuration,
-            params.agent
+            params.beneficiary
         );
 
         token = address(newToken);
@@ -45,7 +45,7 @@ contract MockERC20RefundableFactory {
 
         emit TokenDeployed(
             token,
-            params.agent,
+            params.beneficiary,
             params.fundingToken,
             params.name,
             params.symbol
