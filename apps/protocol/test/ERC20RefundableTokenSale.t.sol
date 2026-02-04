@@ -3,13 +3,13 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {ERC20RefundableTokenSale} from "../src/ERC20RefundableTokenSale.sol";
-import {ERC20Factory} from "../src/ERC20Factory.sol";
+import {ERC20RefundableTokenSaleFactory} from "../src/ERC20RefundableTokenSaleFactory.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20RefundableTokenSale} from "../src/interfaces/IERC20RefundableTokenSale.sol";
 
 contract ERC20RefundableTokenSaleTest is Test {
-    ERC20Factory public factory;
+    ERC20RefundableTokenSaleFactory public factory;
     ERC20RefundableTokenSale public token;
     MockERC20 public fundingToken;
 
@@ -39,7 +39,7 @@ contract ERC20RefundableTokenSaleTest is Test {
         carol = makeAddr("carol");
 
         // Deploy factory
-        factory = new ERC20Factory();
+        factory = new ERC20RefundableTokenSaleFactory();
 
         // Deploy funding token
         fundingToken = new MockERC20("Funding Token", "USDC");
