@@ -2,27 +2,27 @@
 pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
-import {ERC20Factory} from "../src/ERC20Factory.sol";
+import {ERC20RefundableTokenSaleFactory} from "../src/ERC20RefundableTokenSaleFactory.sol";
 
-/// @notice Deploys the ERC20Factory contract
+/// @notice Deploys the ERC20RefundableTokenSaleFactory contract
 /// @dev Run with: forge script script/DeployFactory.s.sol:DeployFactory --rpc-url <RPC_URL> --broadcast --verify
 contract DeployFactory is Script {
-    function run() external returns (ERC20Factory factory) {
+    function run() external returns (ERC20RefundableTokenSaleFactory factory) {
         // Get deployer from private key
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
 
-        console.log("Deploying ERC20Factory...");
+        console.log("Deploying ERC20RefundableTokenSaleFactory...");
         console.log("Deployer address:", deployer);
 
         vm.startBroadcast(deployerPrivateKey);
 
         // Deploy the factory
-        factory = new ERC20Factory();
+        factory = new ERC20RefundableTokenSaleFactory();
 
         vm.stopBroadcast();
 
-        console.log("ERC20Factory deployed at:", address(factory));
+        console.log("ERC20RefundableTokenSaleFactory deployed at:", address(factory));
         console.log("\nSave this address for deploying token sales!");
         console.log("export FACTORY_ADDRESS=%s", address(factory));
 

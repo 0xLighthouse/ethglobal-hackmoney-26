@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
-import {ERC20Factory} from "../src/ERC20Factory.sol";
+import {ERC20RefundableTokenSaleFactory} from "../src/ERC20RefundableTokenSaleFactory.sol";
 import {ERC20RefundableTokenSale} from "../src/ERC20RefundableTokenSale.sol";
 import {IERC20RefundableTokenSale} from "../src/interfaces/IERC20RefundableTokenSale.sol";
 
@@ -45,7 +45,7 @@ contract DeployTokenSale is Script {
 
         // Get factory address from environment
         address factoryAddress = vm.envAddress("FACTORY_ADDRESS");
-        ERC20Factory factory = ERC20Factory(factoryAddress);
+        ERC20RefundableTokenSaleFactory factory = ERC20RefundableTokenSaleFactory(factoryAddress);
 
         // Get required parameters
         address fundingToken = vm.envAddress("FUNDING_TOKEN");
