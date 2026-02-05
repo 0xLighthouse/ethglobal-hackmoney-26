@@ -7,3 +7,6 @@
 [submodule "apps/protocol/lib/solady"]
 	path = apps/protocol/lib/solady
 	url = https://github.com/vectorized/solady
+[submodule "apps/protocol/lib/v4-core"]
+	path = apps/protocol/lib/v4-core
+	url = https://github.com/Uniswap/v4-core

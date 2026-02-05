@@ -17,8 +17,11 @@ contract DeployFactory is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
+        // Get pool manager address from environment
+        address poolManager = vm.envAddress("POOL_MANAGER");
+
         // Deploy the factory
-        factory = new ERC20RefundableTokenSaleFactory();
+        factory = new ERC20RefundableTokenSaleFactory(poolManager);
 
         vm.stopBroadcast();
 

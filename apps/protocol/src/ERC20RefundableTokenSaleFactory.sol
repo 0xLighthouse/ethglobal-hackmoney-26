@@ -10,6 +10,9 @@ contract ERC20RefundableTokenSaleFactory is IERC20RefundableTokenSaleFactory {
     // State Variables
     // ---------------------------------------------------------------
 
+    /// @notice Address of the pool manager
+    address public poolManager;
+
     /// @notice Array of all deployed token addresses
     address[] private _deployedTokens;
 
@@ -21,6 +24,11 @@ contract ERC20RefundableTokenSaleFactory is IERC20RefundableTokenSaleFactory {
 
     /// @notice Mapping from beneficiary address to their tokens
     mapping(address => address[]) private _tokensByBeneficiary;
+
+    /// @notice Constructor to store the pool manager address for the chain we are using
+    constructor(address poolManager_) {
+        poolManager = poolManager_;
+    }
 
     // ---------------------------------------------------------------
     // View Functions
@@ -77,7 +85,8 @@ contract ERC20RefundableTokenSaleFactory is IERC20RefundableTokenSaleFactory {
             symbol,
             maxSupply,
             fundingToken,
-            beneficiary
+            beneficiary,
+            poolManager
         );
 
         token = address(newToken);
@@ -119,7 +128,8 @@ contract ERC20RefundableTokenSaleFactory is IERC20RefundableTokenSaleFactory {
             params.symbol,
             params.maxSupply,
             params.fundingToken,
-            params.beneficiary
+            params.beneficiary,
+            poolManager
         );
 
         token = address(newToken);

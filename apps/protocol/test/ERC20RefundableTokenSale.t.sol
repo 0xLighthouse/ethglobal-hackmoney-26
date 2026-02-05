@@ -38,8 +38,11 @@ contract ERC20RefundableTokenSaleTest is Test {
         bob = makeAddr("bob");
         carol = makeAddr("carol");
 
+        // Get pool manager address from environment
+        address poolManager = vm.envAddress("POOL_MANAGER");
+
         // Deploy factory
-        factory = new ERC20RefundableTokenSaleFactory();
+        factory = new ERC20RefundableTokenSaleFactory(poolManager);
 
         // Deploy funding token
         fundingToken = new MockERC20("Funding Token", "USDC");
