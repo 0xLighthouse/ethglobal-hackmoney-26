@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useWeb3 } from "@/providers/web3";
 import { CreateSaleDrawer } from "@/components/drawers/create-sale-drawer";
+import { BuyTokensDrawer } from "@/components/drawers/buy-tokens-drawer";
 import { CreateTokenDialog } from "@/components/dialogs/create-token-dialog";
 
 const DEFAULT_INDEXER_URL = "http://localhost:42069";
@@ -27,17 +28,24 @@ type Sale = {
   saleEndBlock: string;
 };
 
-type SaleStatus = "configured" | "none";
+type SaleStatus = "active" | "ended" | "none";
 
 const shortAddress = (value: string) => {
   if (!value) return "";
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 };
 
-const getSaleStatus = (deployment: Deployment): SaleStatus => {
+const getSaleStatus = (
+  deployment: Deployment,
+  latestBlockNumber: bigint | null
+): SaleStatus => {
+  console.log('---- getSaleStatus()', latestBlockNumber);
   const sale = deployment.sales.items[0];
-  if (!sale) return "none";
-  return "configured";
+  if (!sale || latestBlockNumber === null) return "none";
+  const saleEndBlock = BigInt(sale.saleEndBlock);
+  console.log('----', latestBlockNumber, saleEndBlock);
+  console.log('----', latestBlockNumber <= saleEndBlock ? "active" : "ended");
+  return latestBlockNumber <= saleEndBlock ? "active" : "ended";
 };
 
 const fetchDeployments = async (
@@ -111,9 +119,10 @@ export function TokenDeploymentsTable() {
     () => process.env.NEXT_PUBLIC_INDEXER_URL ?? DEFAULT_INDEXER_URL,
     []
   );
-  const { walletClient, isInitialized } = useWeb3();
+  const { walletClient, publicClient, isInitialized } = useWeb3();
   const [currentAddress, setCurrentAddress] = useState<string | null>(null);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [latestBlockNumber, setLatestBlockNumber] = useState<bigint | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -136,6 +145,8 @@ export function TokenDeploymentsTable() {
     try {
       const result = await fetchDeployments(indexerUrl);
       setDeployments(result.deployments);
+      const blockNumber = await publicClient.getBlockNumber();
+      setLatestBlockNumber(blockNumber);
       setStatus("idle");
     } catch (err) {
       setStatus("error");
@@ -200,7 +211,7 @@ export function TokenDeploymentsTable() {
             {deployments.map((deployment) => {
               const isDeployer =
                 currentAddress?.toLowerCase() === deployment.deployer.toLowerCase();
-              const saleStatus = getSaleStatus(deployment);
+              const saleStatus = getSaleStatus(deployment, latestBlockNumber);
 
               return (
                 <tr key={deployment.id} className="border-t border-gray-100">
@@ -221,15 +232,27 @@ export function TokenDeploymentsTable() {
                     <span className="font-mono">{shortAddress(deployment.txHash)}</span>
                   </td>
                   <td className="px-5 py-5 text-gray-500">
-                    {saleStatus === "configured" && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-                        Configured
+                    {saleStatus === "active" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        Active
+                      </span>
+                    )}
+                    {saleStatus === "ended" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+                        Ended
                       </span>
                     )}
                     {saleStatus === "none" && "—"}
                   </td>
                   <td className="px-5 py-5 text-gray-700">
-                    {isDeployer ? (
+                    {saleStatus === "active" ? (
+                      <BuyTokensDrawer
+                        triggerLabel="Buy Tokens"
+                        triggerClassName="h-10 rounded-full px-5 text-xs font-semibold"
+                        tokenAddress={deployment.token as `0x${string}`}
+                        tokenSymbol={deployment.symbol}
+                      />
+                    ) : isDeployer ? (
                       <CreateSaleDrawer
                         triggerLabel="Create Sale"
                         triggerClassName="h-10 rounded-full px-5 text-xs font-semibold"
