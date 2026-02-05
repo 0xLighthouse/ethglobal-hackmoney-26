@@ -1,8 +1,11 @@
 {
-  "apps/protocol/lib/openzeppelin-contracts": {
-    "rev": "fcbae5394ae8ad52d8e580a3477db99814b9d565"
+  "lib/openzeppelin-contracts-upgradeable": {
+    "rev": "3d5fa5c24c411112bab47bec25cfa9ad0af0e6e8"
   },
   "apps/protocol/lib/solmate": {
+    "rev": "89365b880c4f3c786bdd453d4b8e8fe410344a69"
+  },
+  "lib/solmate": {
     "rev": "89365b880c4f3c786bdd453d4b8e8fe410344a69"
   },
   "lib/cofhe-contracts": {
@@ -11,38 +14,11 @@
       "rev": "b2cc2eaa920cbcf4feddba6f19160537c58dba3b"
     }
   },
-  "lib/cofhe-mock-contracts": {
-    "tag": {
-      "name": "v0.3.1",
-      "rev": "14e5446de3f130bac92b6cd181a24be4559957a0"
-    }
-  },
-  "lib/continuous-clearing-auction": {
-    "tag": {
-      "name": "v1.1.0",
-      "rev": "a0aabaa45d8677a4944fc04d5dea2c4b499b3d3a"
-    }
-  },
-  "lib/forge-std": {
-    "tag": {
-      "name": "v1.14.0",
-      "rev": "1801b0541f4fda118a10798fd3486bb7051c5dd6"
-    }
-  },
-  "lib/liquidity-launcher": {
-    "tag": {
-      "name": "v2.0.0",
-      "rev": "610603eed7c35ff504e23ec87cd18ec3f701e746"
-    }
-  },
   "lib/openzeppelin-contracts": {
     "tag": {
       "name": "v5.5.0",
       "rev": "fcbae5394ae8ad52d8e580a3477db99814b9d565"
     }
-  },
-  "lib/openzeppelin-contracts-upgradeable": {
-    "rev": "3d5fa5c24c411112bab47bec25cfa9ad0af0e6e8"
   },
   "lib/solady": {
     "tag": {
@@ -50,7 +26,19 @@
       "rev": "acd959aa4bd04720d640bf4e6a5c71037510cc4b"
     }
   },
-  "lib/solmate": {
-    "rev": "89365b880c4f3c786bdd453d4b8e8fe410344a69"
+  "lib/v4-core": {
+    "tag": {
+      "name": "v4.0.0",
+      "rev": "e50237c43811bd9b526eff40f26772152a42daba"
+    }
+  },
+  "apps/protocol/lib/openzeppelin-contracts": {
+    "rev": "fcbae5394ae8ad52d8e580a3477db99814b9d565"
+  },
+  "lib/forge-std": {
+    "tag": {
+      "name": "v1.14.0",
+      "rev": "1801b0541f4fda118a10798fd3486bb7051c5dd6"
+    }
   }
 }
