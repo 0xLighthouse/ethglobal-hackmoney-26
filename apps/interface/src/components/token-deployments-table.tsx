@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useWeb3 } from "@/providers/web3";
-import { CreateSaleDialog } from "@/components/dialogs/create-sale-dialog";
+import { CreateSaleDrawer } from "@/components/drawers/create-sale-drawer";
 import { CreateTokenDialog } from "@/components/dialogs/create-token-dialog";
 
 const DEFAULT_INDEXER_URL = "http://localhost:42069";
@@ -17,17 +17,35 @@ type Deployment = {
   maxSupply: string;
   blockNumber: string;
   txHash: string;
+  sales: {
+    items: Sale[];
+  };
 };
+
+type Sale = {
+  token: string;
+  saleEndBlock: string;
+};
+
+type SaleStatus = "configured" | "none";
 
 const shortAddress = (value: string) => {
   if (!value) return "";
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 };
 
-const fetchDeployments = async (indexerUrl: string): Promise<Deployment[]> => {
+const getSaleStatus = (deployment: Deployment): SaleStatus => {
+  const sale = deployment.sales.items[0];
+  if (!sale) return "none";
+  return "configured";
+};
+
+const fetchDeployments = async (
+  indexerUrl: string
+): Promise<{ deployments: Deployment[] }> => {
   const query = `
     query Deployments($limit: Int!) {
-      refundableTokenDeployments(orderBy: "blockNumber", orderDirection: "desc", limit: $limit) {
+      tokens(orderBy: "blockNumber", orderDirection: "desc", limit: $limit) {
         items {
           id
           token
@@ -38,6 +56,12 @@ const fetchDeployments = async (indexerUrl: string): Promise<Deployment[]> => {
           maxSupply
           blockNumber
           txHash
+        }
+      }
+      tokenSales(orderBy: "blockNumber", orderDirection: "desc", limit: 200) {
+        items {
+          token
+          saleEndBlock
         }
       }
     }
@@ -58,12 +82,28 @@ const fetchDeployments = async (indexerUrl: string): Promise<Deployment[]> => {
     throw new Error(payload.errors[0]?.message ?? "Indexer query failed.");
   }
 
-  const data = payload.data?.refundableTokenDeployments;
-  if (Array.isArray(data)) {
-    return data as Deployment[];
+  const deployments = payload.data?.tokens?.items ?? [];
+  const sales = payload.data?.tokenSales?.items ?? [];
+
+  const saleByToken = new Map<string, Sale>();
+  for (const sale of sales) {
+    const token = String(sale.token).toLowerCase();
+    if (!saleByToken.has(token)) {
+      saleByToken.set(token, sale);
+    }
   }
 
-  return (data?.items ?? []) as Deployment[];
+  const withSales = deployments.map((deployment: Deployment) => {
+    const sale = saleByToken.get(deployment.token.toLowerCase());
+    return {
+      ...deployment,
+      sales: {
+        items: sale ? [sale] : [],
+      },
+    };
+  });
+
+  return { deployments: withSales };
 };
 
 export function TokenDeploymentsTable() {
@@ -94,8 +134,8 @@ export function TokenDeploymentsTable() {
     setStatus("loading");
     setError(null);
     try {
-      const items = await fetchDeployments(indexerUrl);
-      setDeployments(items);
+      const result = await fetchDeployments(indexerUrl);
+      setDeployments(result.deployments);
       setStatus("idle");
     } catch (err) {
       setStatus("error");
@@ -160,6 +200,7 @@ export function TokenDeploymentsTable() {
             {deployments.map((deployment) => {
               const isDeployer =
                 currentAddress?.toLowerCase() === deployment.deployer.toLowerCase();
+              const saleStatus = getSaleStatus(deployment);
 
               return (
                 <tr key={deployment.id} className="border-t border-gray-100">
@@ -179,12 +220,21 @@ export function TokenDeploymentsTable() {
                   <td className="px-5 py-5 text-gray-700">
                     <span className="font-mono">{shortAddress(deployment.txHash)}</span>
                   </td>
-                  <td className="px-5 py-5 text-gray-500">—</td>
+                  <td className="px-5 py-5 text-gray-500">
+                    {saleStatus === "configured" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                        Configured
+                      </span>
+                    )}
+                    {saleStatus === "none" && "—"}
+                  </td>
                   <td className="px-5 py-5 text-gray-700">
                     {isDeployer ? (
-                      <CreateSaleDialog
+                      <CreateSaleDrawer
                         triggerLabel="Create Sale"
                         triggerClassName="h-10 rounded-full px-5 text-xs font-semibold"
+                        tokenAddress={deployment.token as `0x${string}`}
+                        tokenSymbol={deployment.symbol}
                       />
                     ) : (
                       <span className="text-xs text-gray-400">Deployer only</span>
