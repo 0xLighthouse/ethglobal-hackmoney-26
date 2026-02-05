@@ -22,12 +22,14 @@ type Meta {
 }
 
 type Query {
-  refundableTokenDeployment(id: String!): refundableTokenDeployment
-  refundableTokenDeployments(where: refundableTokenDeploymentFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): refundableTokenDeploymentPage!
+  token(id: String!): token
+  tokens(where: tokenFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): tokenPage!
+  tokenSale(id: String!): tokenSale
+  tokenSales(where: tokenSaleFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): tokenSalePage!
   _meta: Meta
 }
 
-type refundableTokenDeployment {
+type token {
   id: String!
   token: String!
   deployer: String!
@@ -39,15 +41,15 @@ type refundableTokenDeployment {
   txHash: String!
 }
 
-type refundableTokenDeploymentPage {
-  items: [refundableTokenDeployment!]!
+type tokenPage {
+  items: [token!]!
   pageInfo: PageInfo!
   totalCount: Int!
 }
 
-input refundableTokenDeploymentFilter {
-  AND: [refundableTokenDeploymentFilter]
-  OR: [refundableTokenDeploymentFilter]
+input tokenFilter {
+  AND: [tokenFilter]
+  OR: [tokenFilter]
   id: String
   id_not: String
   id_in: [String]
@@ -116,6 +118,98 @@ input refundableTokenDeploymentFilter {
   maxSupply_lt: BigInt
   maxSupply_gte: BigInt
   maxSupply_lte: BigInt
+  blockNumber: BigInt
+  blockNumber_not: BigInt
+  blockNumber_in: [BigInt]
+  blockNumber_not_in: [BigInt]
+  blockNumber_gt: BigInt
+  blockNumber_lt: BigInt
+  blockNumber_gte: BigInt
+  blockNumber_lte: BigInt
+  txHash: String
+  txHash_not: String
+  txHash_in: [String]
+  txHash_not_in: [String]
+  txHash_contains: String
+  txHash_not_contains: String
+  txHash_starts_with: String
+  txHash_ends_with: String
+  txHash_not_starts_with: String
+  txHash_not_ends_with: String
+}
+
+type tokenSale {
+  id: String!
+  token: String!
+  saleAmount: BigInt!
+  purchasePrice: BigInt!
+  saleStartBlock: BigInt!
+  saleEndBlock: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+}
+
+type tokenSalePage {
+  items: [tokenSale!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input tokenSaleFilter {
+  AND: [tokenSaleFilter]
+  OR: [tokenSaleFilter]
+  id: String
+  id_not: String
+  id_in: [String]
+  id_not_in: [String]
+  id_contains: String
+  id_not_contains: String
+  id_starts_with: String
+  id_ends_with: String
+  id_not_starts_with: String
+  id_not_ends_with: String
+  token: String
+  token_not: String
+  token_in: [String]
+  token_not_in: [String]
+  token_contains: String
+  token_not_contains: String
+  token_starts_with: String
+  token_ends_with: String
+  token_not_starts_with: String
+  token_not_ends_with: String
+  saleAmount: BigInt
+  saleAmount_not: BigInt
+  saleAmount_in: [BigInt]
+  saleAmount_not_in: [BigInt]
+  saleAmount_gt: BigInt
+  saleAmount_lt: BigInt
+  saleAmount_gte: BigInt
+  saleAmount_lte: BigInt
+  purchasePrice: BigInt
+  purchasePrice_not: BigInt
+  purchasePrice_in: [BigInt]
+  purchasePrice_not_in: [BigInt]
+  purchasePrice_gt: BigInt
+  purchasePrice_lt: BigInt
+  purchasePrice_gte: BigInt
+  purchasePrice_lte: BigInt
+  saleStartBlock: BigInt
+  saleStartBlock_not: BigInt
+  saleStartBlock_in: [BigInt]
+  saleStartBlock_not_in: [BigInt]
+  saleStartBlock_gt: BigInt
+  saleStartBlock_lt: BigInt
+  saleStartBlock_gte: BigInt
+  saleStartBlock_lte: BigInt
+  saleEndBlock: BigInt
+  saleEndBlock_not: BigInt
+  saleEndBlock_in: [BigInt]
+  saleEndBlock_not_in: [BigInt]
+  saleEndBlock_gt: BigInt
+  saleEndBlock_lt: BigInt
+  saleEndBlock_gte: BigInt
+  saleEndBlock_lte: BigInt
   blockNumber: BigInt
   blockNumber_not: BigInt
   blockNumber_in: [BigInt]

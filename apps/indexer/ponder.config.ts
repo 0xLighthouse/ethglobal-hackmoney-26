@@ -2,7 +2,8 @@ import { createConfig } from "ponder";
 import { http } from "viem";
 import { baseSepolia } from "viem/chains";
 
-import { ERC20RefundableTokenSaleFactoryABI } from "@repo/abis";
+import { ERC20RefundableTokenSaleFactoryABI, ERC20RefundableTokenSaleABI } from "@repo/abis";
+import { factory } from "ponder";
 import { resolveDeployment } from "./src/lib/resolveDeployment";
 
 const rpcUrl = process.env.BASE_SEPOLIA_RPC_URL;
@@ -16,9 +17,14 @@ const factoryDeployment = resolveDeployment(
   "apps/protocol/broadcast/DeployFactory.s.sol/84532/run-latest.json"
 );
 
+const factoryStartBlock = factoryDeployment.startBlock ?? 0;
+const refundableTokenDeployedEvent = ERC20RefundableTokenSaleFactoryABI.find(
+  (item) => item.type === "event" && item.name === "RefundableTokenDeployed"
+);
 
-console.log('factoryDeployment');
-console.log(factoryDeployment);
+if (!refundableTokenDeployedEvent) {
+  throw new Error("RefundableTokenDeployed event not found in factory ABI.");
+}
 
 export default createConfig({
   chains: {
@@ -33,7 +39,16 @@ export default createConfig({
       chain: "baseSepolia",
       abi: ERC20RefundableTokenSaleFactoryABI,
       address: factoryDeployment.address,
-      startBlock: factoryDeployment.startBlock
-    }
+      startBlock: factoryStartBlock
+    },
+    ERC20RefundableTokenSale: {
+      chain: "baseSepolia",
+      abi: ERC20RefundableTokenSaleABI,
+      address: factory({
+        address: factoryDeployment.address,
+        event: refundableTokenDeployedEvent,
+        parameter: "token"
+      })
+    },
   }
 });
