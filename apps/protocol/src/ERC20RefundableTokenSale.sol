@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "./ERC20Refundable.sol";
 import "./interfaces/IERC20RefundableTokenSale.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /// @notice ERC20 token with refundable purchase rights that decay over time and token sale functionality
 contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC20RefundableTokenSale {
@@ -70,6 +71,10 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
     // Buyer actions
     // ---------------------------------------------------------------
 
+    /// @notice Purchase tokens with funding token
+    /// @param amount Number of tokens to purchase
+    /// @param maxFundingAmount Expected amount of funding tokens to spend
+    /// @return tokensPurchased Number of tokens purchased
     function purchase(uint256 amount, uint256 maxFundingAmount) external returns (uint256 tokensPurchased) {
         if (block.number < refundWindowStartBlock || block.number > tokenSaleEndBlock) {
             revert SaleNotActive();
@@ -77,7 +82,9 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         if (amount > remainingTokensForSale) {
             revert InsufficientTokensForSale();
         }
-        uint256 fundingTokenAmount = amount * tokenSalePurchasePrice;
+
+        uint256 fundingTokenAmount = amount * tokenSalePurchasePrice / (10 ** IERC20Metadata(FUNDING_TOKEN).decimals());
+
         if (fundingTokenAmount > maxFundingAmount) {
             revert MaxFundingAmountExceeded();
         }
