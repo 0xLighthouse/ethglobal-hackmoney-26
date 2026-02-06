@@ -14,4 +14,7 @@ forge script script/DeployFactory.s.sol \
 
 # Create base sale
 forge script script/DeployTokenSale.s.sol --rpc-url $BASE_SEPOLIA_RPC_URL --broadcast
+
+# Buy tokens
+forge script script/BuyTokens.s.sol:BuyTokens --rpc-url $BASE_SEPOLIA_RPC_URL --broadcast
 ```

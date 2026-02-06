@@ -154,7 +154,7 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
             refundedTokenAmount = tokenAmount;
         }
 
-        fundingTokenAmount = refundedTokenAmount * _refundableBalances[msg.sender].purchasePrice / (10 ** IERC20Metadata(FUNDING_TOKEN).decimals());
+        fundingTokenAmount = refundedTokenAmount * _refundableBalances[msg.sender].purchasePrice / (10 ** decimals());
         // Update user's remaining refundable balance
         _refundableBalances[msg.sender].originalAmount =
             _refundableBalances[msg.sender].originalAmount - refundedTokenAmount;
