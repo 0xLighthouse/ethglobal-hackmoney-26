@@ -26,6 +26,8 @@ type Query {
   tokens(where: tokenFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): tokenPage!
   tokenSale(id: String!): tokenSale
   tokenSales(where: tokenSaleFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): tokenSalePage!
+  tokenSaleActivity(id: String!): tokenSaleActivity
+  tokenSaleActivitys(where: tokenSaleActivityFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): tokenSaleActivityPage!
   _meta: Meta
 }
 
@@ -210,6 +212,91 @@ input tokenSaleFilter {
   saleEndBlock_lt: BigInt
   saleEndBlock_gte: BigInt
   saleEndBlock_lte: BigInt
+  blockNumber: BigInt
+  blockNumber_not: BigInt
+  blockNumber_in: [BigInt]
+  blockNumber_not_in: [BigInt]
+  blockNumber_gt: BigInt
+  blockNumber_lt: BigInt
+  blockNumber_gte: BigInt
+  blockNumber_lte: BigInt
+  txHash: String
+  txHash_not: String
+  txHash_in: [String]
+  txHash_not_in: [String]
+  txHash_contains: String
+  txHash_not_contains: String
+  txHash_starts_with: String
+  txHash_ends_with: String
+  txHash_not_starts_with: String
+  txHash_not_ends_with: String
+}
+
+type tokenSaleActivity {
+  id: String!
+  token: String!
+  kind: String!
+  tokenAmount: BigInt!
+  fundingAmount: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+}
+
+type tokenSaleActivityPage {
+  items: [tokenSaleActivity!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input tokenSaleActivityFilter {
+  AND: [tokenSaleActivityFilter]
+  OR: [tokenSaleActivityFilter]
+  id: String
+  id_not: String
+  id_in: [String]
+  id_not_in: [String]
+  id_contains: String
+  id_not_contains: String
+  id_starts_with: String
+  id_ends_with: String
+  id_not_starts_with: String
+  id_not_ends_with: String
+  token: String
+  token_not: String
+  token_in: [String]
+  token_not_in: [String]
+  token_contains: String
+  token_not_contains: String
+  token_starts_with: String
+  token_ends_with: String
+  token_not_starts_with: String
+  token_not_ends_with: String
+  kind: String
+  kind_not: String
+  kind_in: [String]
+  kind_not_in: [String]
+  kind_contains: String
+  kind_not_contains: String
+  kind_starts_with: String
+  kind_ends_with: String
+  kind_not_starts_with: String
+  kind_not_ends_with: String
+  tokenAmount: BigInt
+  tokenAmount_not: BigInt
+  tokenAmount_in: [BigInt]
+  tokenAmount_not_in: [BigInt]
+  tokenAmount_gt: BigInt
+  tokenAmount_lt: BigInt
+  tokenAmount_gte: BigInt
+  tokenAmount_lte: BigInt
+  fundingAmount: BigInt
+  fundingAmount_not: BigInt
+  fundingAmount_in: [BigInt]
+  fundingAmount_not_in: [BigInt]
+  fundingAmount_gt: BigInt
+  fundingAmount_lt: BigInt
+  fundingAmount_gte: BigInt
+  fundingAmount_lte: BigInt
   blockNumber: BigInt
   blockNumber_not: BigInt
   blockNumber_in: [BigInt]

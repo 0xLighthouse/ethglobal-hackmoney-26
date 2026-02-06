@@ -1,4 +1,3 @@
-import { CreateTokenDialog } from "@/components/dialogs/create-token-dialog";
 import { TokenDeploymentsTable } from "@/components/token-deployments-table";
 
 export default function Home() {
