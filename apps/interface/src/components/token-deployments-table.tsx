@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { baseSepolia } from "viem/chains";
 import { useWeb3 } from "@/providers/web3";
 import { CreateSaleDrawer } from "@/components/drawers/create-sale-drawer";
 import { BuyTokensDrawer } from "@/components/drawers/buy-tokens-drawer";
 import { CreateTokenDialog } from "@/components/dialogs/create-token-dialog";
+import { parseUnits } from "viem";
 
 const DEFAULT_INDEXER_URL = "http://localhost:42069";
+const explorerBaseUrl =
+  baseSepolia.blockExplorers?.default.url ?? "https://sepolia.basescan.org";
 
 type Deployment = {
   id: string;
@@ -25,7 +29,12 @@ type Deployment = {
 
 type Sale = {
   token: string;
+  saleAmount: string;
+  purchasePrice: string;
+  saleStartBlock: string;
   saleEndBlock: string;
+  blockNumber: string;
+  txHash: string;
 };
 
 type SaleStatus = "active" | "ended" | "none";
@@ -35,16 +44,22 @@ const shortAddress = (value: string) => {
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 };
 
+const formatMaxSupply = (value: string) => {
+  if (!value) return "—";
+  try {
+    return new Intl.NumberFormat("en-US").format(Number(parseUnits(value, 18)));
+  } catch {
+    return "—";
+  }
+};
+
 const getSaleStatus = (
   deployment: Deployment,
   latestBlockNumber: bigint | null
 ): SaleStatus => {
-  console.log('---- getSaleStatus()', latestBlockNumber);
   const sale = deployment.sales.items[0];
   if (!sale || latestBlockNumber === null) return "none";
   const saleEndBlock = BigInt(sale.saleEndBlock);
-  console.log('----', latestBlockNumber, saleEndBlock);
-  console.log('----', latestBlockNumber <= saleEndBlock ? "active" : "ended");
   return latestBlockNumber <= saleEndBlock ? "active" : "ended";
 };
 
@@ -69,7 +84,12 @@ const fetchDeployments = async (
       tokenSales(orderBy: "blockNumber", orderDirection: "desc", limit: 200) {
         items {
           token
+          saleAmount
+          purchasePrice
+          saleStartBlock
           saleEndBlock
+          blockNumber
+          txHash
         }
       }
     }
@@ -191,11 +211,9 @@ export function TokenDeploymentsTable() {
             <tr>
               <th className="px-5 py-4">Token</th>
               <th className="px-5 py-4">Network</th>
+              <th className="px-5 py-4">Token Address</th>
               <th className="px-5 py-4">Max Supply</th>
-              <th className="px-5 py-4">Deployer</th>
               <th className="px-5 py-4">Beneficiary</th>
-              <th className="px-5 py-4">Block</th>
-              <th className="px-5 py-4">Tx</th>
               <th className="px-5 py-4">Status</th>
               <th className="px-5 py-4">Actions</th>
             </tr>
@@ -203,7 +221,7 @@ export function TokenDeploymentsTable() {
           <tbody>
             {deployments.length === 0 && status !== "error" && (
               <tr>
-                <td className="px-5 py-8 text-gray-500" colSpan={9}>
+                <td className="px-5 py-8 text-gray-500" colSpan={7}>
                   {status === "loading" ? "Loading deployments..." : "No deployments yet."}
                 </td>
               </tr>
@@ -220,16 +238,22 @@ export function TokenDeploymentsTable() {
                     <div className="text-xs font-mono text-gray-500">{deployment.symbol}</div>
                   </td>
                   <td className="px-5 py-5 text-gray-700">Base</td>
-                  <td className="px-5 py-5 text-gray-700">{deployment.maxSupply}</td>
                   <td className="px-5 py-5 text-gray-700">
-                    <span className="font-mono">{shortAddress(deployment.deployer)}</span>
+                    <a
+                      className="font-mono text-gray-700 hover:text-gray-900"
+                      href={`${explorerBaseUrl}/address/${deployment.token}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={deployment.token}
+                    >
+                      {shortAddress(deployment.token)}
+                    </a>
+                  </td>
+                  <td className="px-5 py-5 text-gray-700">
+                    {formatMaxSupply(deployment.maxSupply)}
                   </td>
                   <td className="px-5 py-5 text-gray-700">
                     <span className="font-mono">{shortAddress(deployment.beneficiary)}</span>
-                  </td>
-                  <td className="px-5 py-5 text-gray-700">{deployment.blockNumber}</td>
-                  <td className="px-5 py-5 text-gray-700">
-                    <span className="font-mono">{shortAddress(deployment.txHash)}</span>
                   </td>
                   <td className="px-5 py-5 text-gray-500">
                     {saleStatus === "active" && (
@@ -251,6 +275,7 @@ export function TokenDeploymentsTable() {
                         triggerClassName="h-10 rounded-full px-5 text-xs font-semibold"
                         tokenAddress={deployment.token as `0x${string}`}
                         tokenSymbol={deployment.symbol}
+                        sale={deployment.sales.items[0] ?? null}
                       />
                     ) : isDeployer ? (
                       <CreateSaleDrawer
