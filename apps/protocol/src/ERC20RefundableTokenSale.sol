@@ -5,6 +5,7 @@ import "./ERC20Refundable.sol";
 import "./interfaces/IERC20RefundableTokenSale.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
+import {PoolId} from "v4-core/types/PoolId.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {IPositionManager} from "v4-periphery/interfaces/IPositionManager.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
@@ -46,6 +47,7 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         positionManager = IPositionManager(positionManager_);
         permit2 = IAllowanceTransfer(permit2_);
         (poolKey, fundingTokenIsCurrency0) = TokenLiquidity.createPool(poolManager, fundingToken, address(this));
+        emit PoolInitialized(address(this), fundingToken, PoolId.unwrap(poolKey.toId()));
 
         // Permit the max for both so we can use the position manager, because we trust permit2 (can optomize this later)
         _approve(address(this), address(permit2), type(uint256).max);
