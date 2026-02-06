@@ -10,8 +10,9 @@ contract ERC20RefundableTokenSaleFactory is IERC20RefundableTokenSaleFactory {
     // State Variables
     // ---------------------------------------------------------------
 
-    /// @notice Address of the pool manager
+    /// @notice Address of the pool abd positionmanager
     address public poolManager;
+    address public positionManager;
 
     /// @notice Array of all deployed token addresses
     address[] private _deployedTokens;
@@ -26,8 +27,9 @@ contract ERC20RefundableTokenSaleFactory is IERC20RefundableTokenSaleFactory {
     mapping(address => address[]) private _tokensByBeneficiary;
 
     /// @notice Constructor to store the pool manager address for the chain we are using
-    constructor(address poolManager_) {
+    constructor(address poolManager_, address positionManager_) {
         poolManager = poolManager_;
+        positionManager = positionManager_;
     }
 
     // ---------------------------------------------------------------
@@ -81,12 +83,7 @@ contract ERC20RefundableTokenSaleFactory is IERC20RefundableTokenSaleFactory {
 
         // Deploy new ERC20RefundableTokenSale contract
         ERC20RefundableTokenSale newToken = new ERC20RefundableTokenSale(
-            name,
-            symbol,
-            maxSupply,
-            fundingToken,
-            beneficiary,
-            poolManager
+            name, symbol, maxSupply, fundingToken, beneficiary, poolManager, positionManager
         );
 
         token = address(newToken);
@@ -101,57 +98,7 @@ contract ERC20RefundableTokenSaleFactory is IERC20RefundableTokenSaleFactory {
         _tokensByBeneficiary[beneficiary].push(token);
 
         // Emit event
-        emit RefundableTokenDeployed(
-            token,
-            msg.sender,
-            beneficiary,
-            name,
-            symbol,
-            maxSupply
-        );
-
-        return token;
-    }
-
-    /// @inheritdoc IERC20RefundableTokenSaleFactory
-    function deployRefundableToken(DeployRefundableTokenParams calldata params) external returns (address token) {
-        // Validate inputs
-        require(bytes(params.name).length > 0, "Name cannot be empty");
-        require(bytes(params.symbol).length > 0, "Symbol cannot be empty");
-        require(params.maxSupply > 0, "Max supply must be greater than 0");
-        require(params.beneficiary != address(0), "Beneficiary cannot be zero address");
-        require(params.fundingToken != address(0), "Funding token cannot be zero address");
-
-        // Deploy new ERC20RefundableTokenSale contract
-        ERC20RefundableTokenSale newToken = new ERC20RefundableTokenSale(
-            params.name,
-            params.symbol,
-            params.maxSupply,
-            params.fundingToken,
-            params.beneficiary,
-            poolManager
-        );
-
-        token = address(newToken);
-
-        // Transfer ownership to the deployer
-        newToken.transferOwnership(msg.sender);
-
-        // Register the token
-        _deployedTokens.push(token);
-        _isDeployedToken[token] = true;
-        _tokensByDeployer[msg.sender].push(token);
-        _tokensByBeneficiary[params.beneficiary].push(token);
-
-        // Emit event
-        emit RefundableTokenDeployed(
-            token,
-            msg.sender,
-            params.beneficiary,
-            params.name,
-            params.symbol,
-            params.maxSupply
-        );
+        emit RefundableTokenDeployed(token, msg.sender, beneficiary, name, symbol, maxSupply);
 
         return token;
     }
