@@ -14,6 +14,7 @@ import {IPositionManager} from "v4-periphery/interfaces/IPositionManager.sol";
 import {LiquidityAmounts} from "v4-periphery/libraries/LiquidityAmounts.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {Actions} from "v4-periphery/libraries/Actions.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
 /// @notice ERC20 token with refundable purchase rights that decay over time and token sale functionality
 contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC20RefundableTokenSale {
@@ -32,6 +33,7 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
     IPoolManager public poolManager;
     IPositionManager public positionManager;
     PoolKey public poolKey;
+    IAllowanceTransfer public permit2;
 
     bool private fundingTokenIsCurrency0;
 
@@ -42,14 +44,15 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         address fundingToken,
         address beneficiary,
         address poolManager_,
-        address positionManager_
+        address positionManager_,
+        address permit2_
     ) ERC20Refundable(name, symbol, maxSupply, beneficiary, fundingToken) {
-        if (poolManager_ == address(0) || positionManager_ == address(0)) return;
+        if (poolManager_ == address(0) || positionManager_ == address(0) || permit2_ == address(0)) return;
 
         // Deploy a pool for our new token
         poolManager = IPoolManager(poolManager_);
         positionManager = IPositionManager(positionManager_);
-
+        permit2 = IAllowanceTransfer(permit2_);
         // Start with a 1:1 price
         uint160 sqrtPriceX96 = 79228162514264337593543950336;
 
@@ -84,6 +87,10 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         });
 
         poolManager.initialize(poolKey, sqrtPriceX96);
+
+        // Permit the max for both so we can use the position manager, because we trust permit2 (can optomize this later)
+        _approve(address(this), address(permit2), type(uint256).max);
+        IERC20(fundingToken).approve(address(permit2), type(uint256).max);
     }
 
     // ---------------------------------------------------------------
@@ -112,11 +119,11 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         }
 
         if (fundingTokensHeld > 0) {
-          // Send the beneficiary all the funding tokens that are unclaimed
-          if (!IERC20(FUNDING_TOKEN).transfer(BENEFICIARY, fundingTokensHeld)) {
-            revert ERC20TransferFailed();
-          }
-          fundingTokensHeld = 0;
+            // Send the beneficiary all the funding tokens that are unclaimed
+            if (!IERC20(FUNDING_TOKEN).transfer(BENEFICIARY, fundingTokensHeld)) {
+                revert ERC20TransferFailed();
+            }
+            fundingTokensHeld = 0;
         }
 
         _totalRefundableTokens = 0;
@@ -183,7 +190,8 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         _refundableBalances[msg.sender].blockHeight = uint64(block.number);
 
         // Update total refundable tokens
-        _totalRefundableTokens = _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight) + refundableBalanceAtStart;
+        _totalRefundableTokens =
+            _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight) + refundableBalanceAtStart;
         _totalRefundableBlockHeight = uint64(block.number);
 
         emit Purchased(msg.sender, amount, fundingTokenAmount);
@@ -226,10 +234,6 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
             sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, token0Amount, token1Amount
         );
 
-        // Add liquidity
-        IERC20(Currency.unwrap(poolKey.currency0)).approve(address(positionManager), token0Amount);
-        IERC20(Currency.unwrap(poolKey.currency1)).approve(address(positionManager), token1Amount);
-
         bytes memory actions = abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR));
 
         bytes[] memory params = new bytes[](2);
@@ -243,6 +247,20 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
             token1Amount,
             address(this),
             bytes("") // Hook data
+        );
+
+        IAllowanceTransfer(permit2).approve(
+            Currency.unwrap(poolKey.currency0),
+            address(positionManager),
+            uint160(token0Amount),
+            uint48(block.timestamp + 3600)
+        );
+
+        IAllowanceTransfer(permit2).approve(
+            Currency.unwrap(poolKey.currency1),
+            address(positionManager),
+            uint160(token1Amount),
+            uint48(block.timestamp + 3600)
         );
 
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
