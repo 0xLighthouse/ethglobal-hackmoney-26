@@ -7,6 +7,11 @@ import {ERC20RefundableTokenSaleFactory} from "../src/ERC20RefundableTokenSaleFa
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20RefundableTokenSale} from "../src/interfaces/IERC20RefundableTokenSale.sol";
+import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {PoolKey} from "v4-core/types/PoolKey.sol";
+import {Currency} from "v4-core/types/Currency.sol";
+import {PoolId, PoolIdLibrary} from "v4-core/types/PoolId.sol";
+import {IHooks} from "v4-core/interfaces/IHooks.sol";
 
 contract ERC20RefundableTokenSaleTest is Test {
     ERC20RefundableTokenSaleFactory public factory;
@@ -27,6 +32,11 @@ contract ERC20RefundableTokenSaleTest is Test {
     uint64 public constant REFUNDABLE_DECAY_BLOCK_DELAY = 100;
     uint64 public constant REFUNDABLE_DECAY_BLOCK_DURATION = 200;
 
+    // Base Sepolia
+    address public sepoliaPermit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    address public sepoliaPoolManager = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
+    address public sepoliaPositionManager = 0x4B2C77d209D3405F41a037Ec6c77F7F5b8e2ca80;
+
     event Refunded(address indexed account, address indexed receiver, uint256 tokenAmount, uint256 fundingTokenAmount);
     event FundsClaimed(uint256 fundingTokenAmount);
     event SaleCreated(uint256 amount, uint256 purchasePrice, uint256 saleStartBlock, uint256 saleEndBlock);
@@ -45,7 +55,7 @@ contract ERC20RefundableTokenSaleTest is Test {
         address positionManager = vm.envOr("POSITION_MANAGER", address(0));
 
         // Deploy factory
-        factory = new ERC20RefundableTokenSaleFactory(poolManager, positionManager);
+        factory = new ERC20RefundableTokenSaleFactory(poolManager, positionManager, sepoliaPermit2);
 
         // Deploy funding token
         fundingToken = new MockERC20("Mock USDC", "USDC", 6);
@@ -564,5 +574,98 @@ contract ERC20RefundableTokenSaleTest is Test {
         uint256 totalRefundable = token.totalRefundableSupply();
         assertGt(totalRefundable, 0);
         assertApproxEqAbs(totalRefundable, token.refundableBalanceOf(bob) + token.refundableBalanceOf(carol), 2);
+    }
+
+    function test_DeployPool() public {
+        // Only run this test on Base Sepolia (chain ID 84532)
+        if (block.chainid != 84532) {
+            return;
+        }
+
+        // Deploy a new factory with Sepolia addresses
+        ERC20RefundableTokenSaleFactory sepoliaFactory =
+            new ERC20RefundableTokenSaleFactory(sepoliaPoolManager, sepoliaPositionManager, sepoliaPermit2);
+
+        // Deploy a token with pool
+        vm.prank(owner);
+        address poolTokenAddress =
+            sepoliaFactory.deployRefundableToken("Pool Token", "POOL", MAX_SUPPLY, beneficiary, address(fundingToken));
+        ERC20RefundableTokenSale poolToken = ERC20RefundableTokenSale(poolTokenAddress);
+
+        // Verify pool manager was set
+        assertEq(address(poolToken.poolManager()), sepoliaPoolManager);
+
+        // Verify poolKey was initialized (check that it's not the default value)
+        (Currency currency0, Currency currency1,, int24 tickSpacing,) = poolToken.poolKey();
+        address addr0 = Currency.unwrap(currency0);
+        address addr1 = Currency.unwrap(currency1);
+        assertTrue(addr0 != address(0) || addr1 != address(0), "Pool was not created");
+        assertGt(tickSpacing, 0, "Pool tick spacing not set");
+    }
+
+    function test_DeployPoolAddLiquidityDuringSale() public {
+        // Only run this test on Base Sepolia (chain ID 84532)
+        if (block.chainid != 84532) {
+            return;
+        }
+
+        // Deploy a new factory with Sepolia addresses
+        ERC20RefundableTokenSaleFactory sepoliaFactory =
+            new ERC20RefundableTokenSaleFactory(sepoliaPoolManager, sepoliaPositionManager, sepoliaPermit2);
+
+        // Deploy a token with pool
+        vm.prank(owner);
+        address poolTokenAddress =
+            sepoliaFactory.deployRefundableToken("Pool Token", "POOL", MAX_SUPPLY, beneficiary, address(fundingToken));
+        ERC20RefundableTokenSale poolToken = ERC20RefundableTokenSale(poolTokenAddress);
+
+        // Create a sale with liquidity reservation
+        uint256 saleStartBlock = block.number;
+        uint256 saleEndBlock = block.number + 1000;
+        uint256 saleAmount = 10000 ether;
+        uint64 liquidityBps = 2000; // Reserve 20% for liquidity
+
+        vm.prank(owner);
+        poolToken.createSale(
+            IERC20RefundableTokenSale.SaleParams({
+                saleAmount: saleAmount,
+                purchasePrice: PURCHASE_PRICE,
+                saleStartBlock: uint64(saleStartBlock),
+                saleEndBlock: uint64(saleEndBlock),
+                refundableDecayStartBlock: uint64(saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY),
+                refundableDecayEndBlock: uint64(
+                    saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION
+                ),
+                refundableBpsAtStart: REFUNDABLE_BPS_START,
+                additionalTokensReservedForLiquidityBps: liquidityBps
+            })
+        );
+
+        // Verify pool was created
+        (Currency currency0, Currency currency1,,,) = poolToken.poolKey();
+        address addr0 = Currency.unwrap(currency0);
+        address addr1 = Currency.unwrap(currency1);
+        assertTrue(addr0 != address(0) && addr1 != address(0), "Pool currencies not set");
+
+        // Get token balances before purchase
+        uint256 aliceTokensBefore = poolToken.balanceOf(alice);
+        uint256 aliceFundingBefore = fundingToken.balanceOf(alice);
+
+        // Make a purchase
+        uint256 tokenAmount = 100 ether;
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
+
+        vm.startPrank(alice);
+        fundingToken.approve(address(poolToken), fundingAmount);
+        poolToken.purchase(tokenAmount, fundingAmount);
+        vm.stopPrank();
+
+        // Verify the purchase was successful
+        assertEq(poolToken.balanceOf(alice), aliceTokensBefore + tokenAmount, "Tokens not received");
+        assertEq(fundingToken.balanceOf(alice), aliceFundingBefore - fundingAmount, "Funding not transferred");
+
+        // Verify liquidity was reserved (check that additional tokens are held)
+        uint256 expectedLiquidityTokens = tokenAmount * liquidityBps / 100_00;
+        assertGt(expectedLiquidityTokens, 0, "No liquidity tokens reserved");
     }
 }

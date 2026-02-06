@@ -24,10 +24,10 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
     // ---------------------------------------------------------------
     // Mutable State
     // ---------------------------------------------------------------
-    
+
     // Purchase price in funding tokens for one unit of our token (WAD)
     uint256 public tokenSalePurchasePrice;
-    
+
     /// @notice Block height when the refund window starts
     uint64 public refundWindowStartBlock;
 
@@ -199,10 +199,10 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
 
         // Find how many tokens are currently refundable
         uint256 currentlyRefundableTokens = _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight);
-console.log("currentlyRefundableTokens", currentlyRefundableTokens);
+        console.log("currentlyRefundableTokens", currentlyRefundableTokens);
         // Find out how much money we would need to refund them all
         uint256 lockedFunding = currentlyRefundableTokens * tokenSalePurchasePrice / 1e18;
-console.log("lockedFunding", lockedFunding);
+        console.log("lockedFunding", lockedFunding);
 
         // The agent can claim whatever is not locked for refunds
         console.log("fundingTokensHeld", fundingTokensHeld);
