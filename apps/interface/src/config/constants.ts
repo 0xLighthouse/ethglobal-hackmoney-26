@@ -34,7 +34,7 @@ export const CROSSCHAIN_USDC_CHAINS: CrosschainUsdcConfig[] = [
     id: "ethereum-sepolia",
     name: sepolia.name,
     chainId: sepolia.id,
-    rpcUrl: process.env.NEXT_PUBLIC_ETHEREUM_SEPOLIA_RPC_URL ?? "https://rpc.sepolia.org",
+    rpcUrl: process.env.NEXT_PUBLIC_ETHEREUM_SEPOLIA_RPC_URL ?? "https://ethereum-sepolia.gateway.tatum.io",
     usdcAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
   },
   {
