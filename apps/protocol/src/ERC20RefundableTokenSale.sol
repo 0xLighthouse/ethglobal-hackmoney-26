@@ -18,9 +18,6 @@ import {Actions} from "v4-periphery/libraries/Actions.sol";
 /// @notice ERC20 token with refundable purchase rights that decay over time and token sale functionality
 contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC20RefundableTokenSale {
     using StateLibrary for IPoolManager;
-    // Purchase price in funding tokens
-
-    uint256 public tokenSalePurchasePrice;
 
     // How many additional tokens are reserved to add liquidity
     uint256 public additionalTokensReservedForLiquidityBps;
@@ -114,6 +111,14 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
             revert InsufficientTokensForSale();
         }
 
+        if (fundingTokensHeld > 0) {
+          // Send the beneficiary all the funding tokens that are unclaimed
+          if (!IERC20(FUNDING_TOKEN).transfer(BENEFICIARY, fundingTokensHeld)) {
+            revert ERC20TransferFailed();
+          }
+          fundingTokensHeld = 0;
+        }
+
         _totalRefundableTokens = 0;
         _totalRefundableBlockHeight = uint64(block.number);
 
@@ -131,22 +136,6 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
 
     function endSale() external onlyOwner {
         tokenSaleEndBlock = block.number < tokenSaleEndBlock ? block.number : tokenSaleEndBlock;
-    }
-
-    // ---------------------------------------------------------------
-    // Override claimable funds calculation
-    // ---------------------------------------------------------------
-
-    /// @notice Override to calculate claimable funds using the fixed purchase price
-    function _claimableFunds() internal view override returns (uint256) {
-        // Find what percent of the total refundable tokens are currently refundable
-        uint256 currentlyRefundableTokens = _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight);
-
-        // Calculate locked funding using the purchase price
-        uint256 lockedFunding = currentlyRefundableTokens * tokenSalePurchasePrice / (10 ** decimals());
-
-        // The beneficiary can claim whatever is not locked for refunds
-        return fundingTokensHeld > lockedFunding ? fundingTokensHeld - lockedFunding : 0;
     }
 
     // ---------------------------------------------------------------
@@ -186,17 +175,15 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         // Clear any old state if it exists
         if (_refundableBalances[msg.sender].blockHeight < refundWindowStartBlock) {
             _refundableBalances[msg.sender].originalAmount = 0;
-            _refundableBalances[msg.sender].purchasePrice = 0;
         }
 
         // Record user's refundable balance
         uint256 refundableBalanceAtStart = amount * refundableBpsAtStart / 100_00;
-        _refundableBalances[msg.sender].originalAmount += refundableBalanceAtStart;
-        _refundableBalances[msg.sender].purchasePrice = tokenSalePurchasePrice;
+        _refundableBalances[msg.sender].originalAmount = _refundableBalanceOf(msg.sender) + refundableBalanceAtStart;
         _refundableBalances[msg.sender].blockHeight = uint64(block.number);
 
         // Update total refundable tokens
-        _totalRefundableTokens += refundableBalanceAtStart;
+        _totalRefundableTokens = _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight) + refundableBalanceAtStart;
         _totalRefundableBlockHeight = uint64(block.number);
 
         emit Purchased(msg.sender, amount, fundingTokenAmount);

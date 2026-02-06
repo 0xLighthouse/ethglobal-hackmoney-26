@@ -9,9 +9,6 @@ interface IERC20RefundableTokenSale is IERC20Refundable {
     // Variables
     // ---------------------------------------------------------------
 
-    // Purchase price in funding tokens
-    function tokenSalePurchasePrice() external view returns (uint256);
-
     // Block number when the sale ends
     function tokenSaleEndBlock() external view returns (uint256);
 

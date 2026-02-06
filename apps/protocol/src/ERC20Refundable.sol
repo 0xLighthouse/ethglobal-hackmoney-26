@@ -17,13 +17,18 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
     /// @notice The ERC20 token used for purchasing this token
     address public immutable FUNDING_TOKEN;
 
+    uint256 public immutable FUNDING_TOKEN_DECIMALS;
+
     /// @notice Address authorized to claim funds from token sales
     address public immutable BENEFICIARY;
 
     // ---------------------------------------------------------------
     // Mutable State
     // ---------------------------------------------------------------
-
+    
+    // Purchase price in funding tokens for one unit of our token (WAD)
+    uint256 public tokenSalePurchasePrice;
+    
     /// @notice Block height when the refund window starts
     uint64 public refundWindowStartBlock;
 
@@ -49,7 +54,6 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
     uint256 public totalFundsClaimed;
 
     struct RefundableBalance {
-        uint256 purchasePrice;
         uint256 originalAmount;
         uint256 blockHeight;
     }
@@ -71,6 +75,7 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
         ERC20(name, symbol)
     {
         FUNDING_TOKEN = fundingToken;
+        FUNDING_TOKEN_DECIMALS = IERC20Metadata(fundingToken).decimals();
         BENEFICIARY = beneficiary;
 
         // Mint the max supply to this contract
@@ -154,7 +159,7 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
             refundedTokenAmount = tokenAmount;
         }
 
-        fundingTokenAmount = refundedTokenAmount * _refundableBalances[msg.sender].purchasePrice / (10 ** decimals());
+        fundingTokenAmount = refundedTokenAmount * tokenSalePurchasePrice / (10 ** FUNDING_TOKEN_DECIMALS);
         // Update user's remaining refundable balance
         _refundableBalances[msg.sender].originalAmount =
             _refundableBalances[msg.sender].originalAmount - refundedTokenAmount;
@@ -182,19 +187,16 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
     /// @notice Calculate how many funding tokens the agent can currently claim
     /// @dev Subtracts funds locked for potential refunds from available balance
     /// @return Amount of funding tokens available to claim
-    function claimableFunds() external view virtual returns (uint256) {
+    function claimableFunds() external view returns (uint256) {
         return _claimableFunds();
     }
 
-    function _claimableFunds() internal view virtual returns (uint256) {
-        // Find what percent of the total refundable tokens are currently refundable
+    function _claimableFunds() internal view returns (uint256) {
+        // Find how many tokens are currently refundable
         uint256 currentlyRefundableTokens = _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight);
 
-        // Multiple that by the total funding tokens held to find the amount of funding tokens which are refundable
-        uint256 lockedFunding = 0;
-        if (_totalRefundableTokens > 0) {
-            lockedFunding = (fundingTokensHeld * currentlyRefundableTokens) / _totalRefundableTokens;
-        }
+        // Find out how much money we would need to refund them all
+        uint256 lockedFunding = currentlyRefundableTokens * tokenSalePurchasePrice / (10 ** FUNDING_TOKEN_DECIMALS);
 
         // The agent can claim whatever is not locked for refunds
         return fundingTokensHeld - lockedFunding;
@@ -253,15 +255,7 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
         _refundableBalances[from].originalAmount = refundableBalance - amountToSend;
         _refundableBalances[from].blockHeight = block.number;
 
-        // Find how what the refund value is of the tokens being sent
-        uint256 refundValue = amountToSend * _refundableBalances[from].purchasePrice;
-        // Find recipients original details, so we can know what the new purchase price should be
-        uint256 recipientOriginalAmount = _refundableBalances[to].originalAmount;
-        uint256 recipientRefundValue = recipientOriginalAmount * _refundableBalances[to].purchasePrice;
-        uint256 recipientNewOriginalAmount = recipientOriginalAmount + amountToSend;
-
-        _refundableBalances[to].originalAmount = recipientNewOriginalAmount;
-        _refundableBalances[to].purchasePrice = (recipientRefundValue + refundValue) / recipientNewOriginalAmount;
+        _refundableBalances[to].originalAmount = _refundableBalanceOf(to) + amountToSend;
         _refundableBalances[to].blockHeight = block.number;
     }
 
