@@ -11,6 +11,8 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@circle-fin/bridge-kit": "^1.5.0",
+    "@circle-fin/adapter-viem-v2": "^1.4.0",
     "@privy-io/react-auth": "^3.13.1",
     "@repo/abis": "workspace:*",
     "@web3icons/react": "^4.1.17",

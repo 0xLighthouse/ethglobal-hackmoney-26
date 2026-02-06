@@ -4,11 +4,10 @@ import { Drawer } from "vaul";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createPublicClient, formatUnits, http, parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { useWeb3 } from "@/providers/web3";
-import { CROSSCHAIN_USDC_CHAINS } from "@/config/constants";
 import { ERC20RefundableTokenSaleABI } from "@repo/abis";
-import { NetworkIcon, TokenIcon } from "@web3icons/react/dynamic";
+import { USDCBridge } from "@/components/usdc-bridge";
 
 type BuyTokensDrawerProps = {
   triggerLabel?: string;
@@ -24,14 +23,6 @@ type BuyTokensDrawerProps = {
     blockNumber: string;
     txHash: string;
   } | null;
-};
-
-type UsdcBalanceRow = {
-  id: string;
-  name: string;
-  balance: string;
-  isTarget: boolean;
-  isConfigured: boolean;
 };
 
 const erc20BalanceAbi = [
@@ -82,8 +73,6 @@ export function BuyTokensDrawer({
   const { walletClient, publicClient, isInitialized } = useWeb3();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
-  const [balances, setBalances] = useState<UsdcBalanceRow[]>([]);
-  const [balanceStatus, setBalanceStatus] = useState<"idle" | "loading" | "error">("idle");
   const [tokenDecimals, setTokenDecimals] = useState(18);
   const [fundingTokenDecimals, setFundingTokenDecimals] = useState(6);
   const [fundingTokenAddress, setFundingTokenAddress] = useState<`0x${string}` | null>(null);
@@ -94,92 +83,6 @@ export function BuyTokensDrawer({
   const [status, setStatus] = useState<"idle" | "submitting" | "pending" | "success" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
-
-  const configuredChains = useMemo(() => {
-    return CROSSCHAIN_USDC_CHAINS.map((chain) => ({
-      ...chain,
-      isConfigured: Boolean(chain.rpcUrl && chain.usdcAddress),
-    }));
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    const loadBalances = async () => {
-      setBalanceStatus("loading");
-      try {
-        if (!walletClient || !isInitialized) {
-          setBalances([]);
-          setBalanceStatus("idle");
-          return;
-        }
-
-        const [account] = await walletClient.getAddresses();
-        if (!account) {
-          setBalances([]);
-          setBalanceStatus("idle");
-          return;
-        }
-
-        const rows: UsdcBalanceRow[] = [];
-        await Promise.all(
-          configuredChains.map(async (chain) => {
-            if (!chain.isConfigured) {
-              rows.push({
-                id: chain.id,
-                name: chain.name,
-                balance: "—",
-                isTarget: Boolean(chain.isTarget),
-                isConfigured: false,
-              });
-              return;
-            }
-            try {
-              const client = createPublicClient({
-                transport: http(chain.rpcUrl),
-              });
-
-              const [rawBalance, decimals] = await Promise.all([
-                client.readContract({
-                  address: chain.usdcAddress as `0x${string}`,
-                  abi: erc20BalanceAbi,
-                  functionName: "balanceOf",
-                  args: [account],
-                }),
-                client.readContract({
-                  address: chain.usdcAddress as `0x${string}`,
-                  abi: erc20BalanceAbi,
-                  functionName: "decimals",
-                }),
-              ]);
-
-              rows.push({
-                id: chain.id,
-                name: chain.name,
-                balance: formatUnits(rawBalance, Number(decimals)),
-                isTarget: Boolean(chain.isTarget),
-                isConfigured: true,
-              });
-            } catch {
-              rows.push({
-                id: chain.id,
-                name: chain.name,
-                balance: "—",
-                isTarget: Boolean(chain.isTarget),
-                isConfigured: true,
-              });
-            }
-          })
-        );
-
-        setBalances(rows.sort((a, b) => a.name.localeCompare(b.name)));
-        setBalanceStatus("idle");
-      } catch {
-        setBalanceStatus("error");
-      }
-    };
-
-    loadBalances();
-  }, [open, configuredChains, walletClient, isInitialized]);
 
   useEffect(() => {
     if (!open) return;
@@ -605,60 +508,7 @@ export function BuyTokensDrawer({
                 </div>
               </div>
             )}
-            <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-gray-900">USDC balances</div>
-                <div className="text-[11px] font-medium text-gray-400">Bridge to Base Sepolia</div>
-              </div>
-              <div className="mt-3 space-y-2 text-sm text-gray-600">
-                {balanceStatus === "loading" && (
-                  <div className="rounded-xl border border-dashed border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
-                    Loading balances…
-                  </div>
-                )}
-                {balanceStatus === "error" && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-                    Failed to load balances.
-                  </div>
-                )}
-                {balanceStatus === "idle" && balances.length === 0 && (
-                  <div className="rounded-xl border border-dashed border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
-                    Connect a wallet to see balances.
-                  </div>
-                )}
-                {balances.map((row) => (
-                  <div key={row.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <TokenIcon symbol="USDC" size={18} variant="branded" className="rounded-full" />
-                        <NetworkIcon name={row.name} size={18} variant="branded" className="rounded-full" />
-                      </div>
-                      <span className="font-medium text-gray-900">{row.name}</span>
-                      {row.isTarget && (
-                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                          Target
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`tabular-nums ${row.isConfigured ? "text-gray-900" : "text-gray-400"}`}>
-                        {row.balance}
-                      </span>
-                      {!row.isTarget && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 rounded-full px-3 text-xs text-gray-500"
-                          disabled
-                        >
-                          Bridge
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <USDCBridge />
             <p className="mt-3 text-xs text-gray-400 text-center">
               Native USDC bridge powered by Arc.
             </p>

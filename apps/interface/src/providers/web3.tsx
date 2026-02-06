@@ -9,6 +9,7 @@ import {
   createWalletClient,
   custom,
   http,
+  type EIP1193Provider,
   type WalletClient,
 } from "viem";
 import { useAppStore } from "@/stores/app";
@@ -25,11 +26,13 @@ interface IWeb3Context {
   isInitialized: boolean;
   publicClient: typeof publicClient;
   walletClient: WalletClient | null;
+  walletProvider: EIP1193Provider | null;
 }
 
 const Web3Context = createContext<IWeb3Context>({
   publicClient,
   walletClient: null,
+  walletProvider: null,
   isInitialized: false,
 });
 
@@ -38,6 +41,7 @@ export const useWeb3 = () => useContext(Web3Context);
 // Separate internal component that uses Privy hooks
 const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
   const [walletClient, setWalletClient] = useState<WalletClient | null>(null);
+  const [walletProvider, setWalletProvider] = useState<EIP1193Provider | null>(null);
   const { ready: privyReady, user } = usePrivy();
   const { ready: walletReady, wallets } = useWallets();
   const { isInitialized, status } = useAppStore();
@@ -59,6 +63,7 @@ const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
           transport: custom(provider),
         });
         setWalletClient(nextWalletClient);
+        setWalletProvider(provider);
       }
     };
 
@@ -68,7 +73,7 @@ const Web3ContextProvider = ({ children }: { children: ReactNode }) => {
   }, [isInitialized, wallets]);
 
   return (
-    <Web3Context.Provider value={{ publicClient, walletClient, isInitialized }}>
+    <Web3Context.Provider value={{ publicClient, walletClient, walletProvider, isInitialized }}>
       {children}
     </Web3Context.Provider>
   );
