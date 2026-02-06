@@ -154,7 +154,7 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
             refundedTokenAmount = tokenAmount;
         }
 
-        fundingTokenAmount = refundedTokenAmount * _refundableBalances[msg.sender].purchasePrice;
+        fundingTokenAmount = refundedTokenAmount * _refundableBalances[msg.sender].purchasePrice / (10 ** IERC20Metadata(FUNDING_TOKEN).decimals());
         // Update user's remaining refundable balance
         _refundableBalances[msg.sender].originalAmount =
             _refundableBalances[msg.sender].originalAmount - refundedTokenAmount;
@@ -201,7 +201,7 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
     }
 
     /// @notice Allows the agent to claim all available funds. Can be called by anyone.
-    /// @dev NOTE: We are aware that _claimableFunds() could return more funds than it should, if the purchase prices varied between users and 
+    /// @dev NOTE: We are aware that _claimableFunds() could return more funds than it should, if the purchase prices varied between users and
     /// users who paid above the average have refunded some of their tokens (making the average purchase price incorrect).
     /// For now, we are assuming all purchase prices during one refund window are the same, but have set things up to support mixed
     /// pricing in the future.

@@ -1,5 +1,4 @@
 import { createConfig } from "ponder";
-import { http } from "viem";
 import { baseSepolia } from "viem/chains";
 
 import { ERC20RefundableTokenSaleFactoryABI, ERC20RefundableTokenSaleABI } from "@repo/abis";
@@ -17,9 +16,8 @@ const factoryDeployment = resolveDeployment(
   "apps/protocol/broadcast/DeployFactory.s.sol/84532/run-latest.json"
 );
 
-const factoryStartBlock = factoryDeployment.startBlock ?? 0;
 const refundableTokenDeployedEvent = ERC20RefundableTokenSaleFactoryABI.find(
-  (item) => item.type === "event" && item.name === "RefundableTokenDeployed"
+  (o) => o.type === "event" && o.name === "RefundableTokenDeployed"
 );
 
 if (!refundableTokenDeployedEvent) {
@@ -39,11 +37,12 @@ export default createConfig({
       chain: "baseSepolia",
       abi: ERC20RefundableTokenSaleFactoryABI,
       address: factoryDeployment.address,
-      startBlock: factoryStartBlock
+      startBlock: factoryDeployment.startBlock
     },
     ERC20RefundableTokenSale: {
       chain: "baseSepolia",
       abi: ERC20RefundableTokenSaleABI,
+      startBlock: factoryDeployment.startBlock,
       address: factory({
         address: factoryDeployment.address,
         event: refundableTokenDeployedEvent,

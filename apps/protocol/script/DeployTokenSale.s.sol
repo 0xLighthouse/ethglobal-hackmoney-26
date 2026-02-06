@@ -8,22 +8,17 @@ import {IERC20RefundableTokenSale} from "../src/interfaces/IERC20RefundableToken
 
 /// @notice Deploys a new token sale through the factory and creates a sale
 /// @dev Run with: forge script script/DeployTokenSale.s.sol:DeployTokenSale --rpc-url <RPC_URL> --broadcast
-/// @dev Required env vars: PRIVATE_KEY, FACTORY_ADDRESS, FUNDING_TOKEN, BENEFICIARY
-/// @dev Optional env vars: TOKEN_NAME, TOKEN_SYMBOL, MAX_SUPPLY, SALE_AMOUNT, PURCHASE_PRICE, etc.
+/// @dev Required env vars: DEPLOYER_PRIVATE_KEY
 contract DeployTokenSale is Script {
     function _createSale(ERC20RefundableTokenSale token) internal {
-        uint256 saleAmount = vm.envOr("SALE_AMOUNT", uint256(100_000 ether));
-        uint256 purchasePrice = vm.envOr("PURCHASE_PRICE", uint256(1));
-        uint256 startBlock = vm.envOr("SALE_START_BLOCK", uint256(block.number));
-        uint256 endBlock = vm.envOr("SALE_END_BLOCK", uint256(block.number + 100_000));
-        uint64 bpsStart = uint64(vm.envOr("REFUNDABLE_BPS_START", uint256(8000)));
-        uint64 decayDelay = uint64(vm.envOr("REFUNDABLE_DECAY_DELAY", uint256(43_200)));
-        uint64 decayDuration = uint64(vm.envOr("REFUNDABLE_DECAY_DURATION", uint256(86_400)));
+        uint256 saleAmount = 100_000 ether;
+        uint256 purchasePrice = 1e5; // 0.1 USDC
+        uint256 startBlock = block.number;
+        uint256 endBlock = block.number + 100_000;
+        uint64 bpsStart = 8000; // 80%
+        uint64 decayDelay = 50; // 50 blocks (10 minutes)
+        uint64 decayDuration = 100; // 100 blocks (2 days)
 
-        console.log("Sale Amount:", saleAmount);
-        console.log("Purchase Price:", purchasePrice);
-        console.log("Sale Start Block:", startBlock);
-        console.log("Sale End Block:", endBlock);
 
         token.createSale(
             IERC20RefundableTokenSale.SaleParams({
@@ -40,34 +35,23 @@ contract DeployTokenSale is Script {
 
     function run() external returns (ERC20RefundableTokenSale token) {
         // Get deployer from private key
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
 
         // Get factory address from environment
-        address factoryAddress = vm.envAddress("FACTORY_ADDRESS");
+        address factoryAddress = 0xAA4c01f7B2627a227B257378C73BC52Abf74e71e;
         ERC20RefundableTokenSaleFactory factory = ERC20RefundableTokenSaleFactory(factoryAddress);
 
         // Get required parameters
-        address fundingToken = vm.envAddress("FUNDING_TOKEN");
-        address beneficiary = vm.envAddress("BENEFICIARY");
+        address fundingToken = 0x036CbD53842c5426634e7929541eC2318f3dCF7e; // USDC on Base Sepolia
+        address beneficiary = 0x6837047F46Da1d5d9A79846b25810b92adF456F6; // 1a35e1.eth
 
-        // Get optional parameters with defaults
-        string memory tokenName = vm.envOr("TOKEN_NAME", string("Refundable Token"));
-        string memory tokenSymbol = vm.envOr("TOKEN_SYMBOL", string("RTOKEN"));
-        uint256 maxSupply = vm.envOr("MAX_SUPPLY", uint256(1_000_000 ether));
-
-        console.log("Deploying Token Sale...");
-        console.log("Deployer:", deployer);
-        console.log("Factory:", factoryAddress);
-        console.log("Funding Token:", fundingToken);
-        console.log("Beneficiary:", beneficiary);
-        console.log("Token Name:", tokenName);
-        console.log("Token Symbol:", tokenSymbol);
-        console.log("Max Supply:", maxSupply);
-
-        vm.startBroadcast(deployerPrivateKey);
+        string memory tokenName = "Clawbackable Labs";
+        string memory tokenSymbol = "CLBK";
+        uint256 maxSupply = 10_000_000 ether;
 
         // Deploy token through factory
+        vm.startBroadcast(deployerPrivateKey);
         address tokenAddress = factory.deployRefundableToken(
             tokenName,
             tokenSymbol,
@@ -75,20 +59,15 @@ contract DeployTokenSale is Script {
             beneficiary,
             fundingToken
         );
+        vm.stopBroadcast();
 
         token = ERC20RefundableTokenSale(tokenAddress);
 
         console.log("\nToken deployed at:", tokenAddress);
 
         // Check if we should create a sale
-        if (vm.envOr("CREATE_SALE", false)) {
-            console.log("\nCreating token sale...");
-
-            _createSale(token);
-
-            console.log("Sale created successfully!");
-        }
-
+        vm.startBroadcast(deployerPrivateKey);
+        _createSale(token);
         vm.stopBroadcast();
 
         console.log("\n=== Deployment Summary ===");

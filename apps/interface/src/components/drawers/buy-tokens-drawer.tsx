@@ -4,9 +4,11 @@ import { Drawer } from "vaul";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createPublicClient, formatUnits, http } from "viem";
+import { createPublicClient, formatUnits, http, parseUnits } from "viem";
 import { useWeb3 } from "@/providers/web3";
 import { CROSSCHAIN_USDC_CHAINS } from "@/config/constants";
+import { ERC20RefundableTokenSaleABI } from "@repo/abis";
+import { NetworkIcon, TokenIcon } from "@web3icons/react/dynamic";
 
 type BuyTokensDrawerProps = {
   triggerLabel?: string;
@@ -14,6 +16,14 @@ type BuyTokensDrawerProps = {
   disabled?: boolean;
   tokenAddress: `0x${string}`;
   tokenSymbol?: string;
+  sale?: {
+    saleAmount: string;
+    purchasePrice: string;
+    saleStartBlock: string;
+    saleEndBlock: string;
+    blockNumber: string;
+    txHash: string;
+  } | null;
 };
 
 type UsdcBalanceRow = {
@@ -39,6 +49,26 @@ const erc20BalanceAbi = [
     outputs: [{ name: "", internalType: "uint8", type: "uint8" }],
     stateMutability: "view",
   },
+  {
+    type: "function",
+    name: "allowance",
+    inputs: [
+      { name: "owner", internalType: "address", type: "address" },
+      { name: "spender", internalType: "address", type: "address" },
+    ],
+    outputs: [{ name: "", internalType: "uint256", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "approve",
+    inputs: [
+      { name: "spender", internalType: "address", type: "address" },
+      { name: "amount", internalType: "uint256", type: "uint256" },
+    ],
+    outputs: [{ name: "", internalType: "bool", type: "bool" }],
+    stateMutability: "nonpayable",
+  },
 ] as const;
 
 export function BuyTokensDrawer({
@@ -47,12 +77,23 @@ export function BuyTokensDrawer({
   disabled = false,
   tokenAddress,
   tokenSymbol = "Token",
+  sale = null,
 }: BuyTokensDrawerProps) {
-  const { walletClient, isInitialized } = useWeb3();
+  const { walletClient, publicClient, isInitialized } = useWeb3();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [balances, setBalances] = useState<UsdcBalanceRow[]>([]);
   const [balanceStatus, setBalanceStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [tokenDecimals, setTokenDecimals] = useState(18);
+  const [fundingTokenDecimals, setFundingTokenDecimals] = useState(6);
+  const [fundingTokenAddress, setFundingTokenAddress] = useState<`0x${string}` | null>(null);
+  const [currentBlock, setCurrentBlock] = useState<bigint | null>(null);
+  const [allowance, setAllowance] = useState<bigint>(0n);
+  const [approvalStatus, setApprovalStatus] = useState<"idle" | "submitting" | "pending" | "success" | "error">("idle");
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "submitting" | "pending" | "success" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
 
   const configuredChains = useMemo(() => {
     return CROSSCHAIN_USDC_CHAINS.map((chain) => ({
@@ -80,46 +121,57 @@ export function BuyTokensDrawer({
         }
 
         const rows: UsdcBalanceRow[] = [];
-        for (const chain of configuredChains) {
-          if (!chain.isConfigured) {
-            rows.push({
-              id: chain.id,
-              name: chain.name,
-              balance: "—",
-              isTarget: Boolean(chain.isTarget),
-              isConfigured: false,
-            });
-            continue;
-          }
-          const client = createPublicClient({
-            transport: http(chain.rpcUrl),
-            chain: { id: chain.chainId, name: chain.name, nativeCurrency: { name: "", symbol: "", decimals: 18 }, rpcUrls: { default: { http: [chain.rpcUrl] } } },
-          });
+        await Promise.all(
+          configuredChains.map(async (chain) => {
+            if (!chain.isConfigured) {
+              rows.push({
+                id: chain.id,
+                name: chain.name,
+                balance: "—",
+                isTarget: Boolean(chain.isTarget),
+                isConfigured: false,
+              });
+              return;
+            }
+            try {
+              const client = createPublicClient({
+                transport: http(chain.rpcUrl),
+              });
 
-          const [rawBalance, decimals] = await Promise.all([
-            client.readContract({
-              address: chain.usdcAddress as `0x${string}`,
-              abi: erc20BalanceAbi,
-              functionName: "balanceOf",
-              args: [account],
-            }),
-            client.readContract({
-              address: chain.usdcAddress as `0x${string}`,
-              abi: erc20BalanceAbi,
-              functionName: "decimals",
-            }),
-          ]);
+              const [rawBalance, decimals] = await Promise.all([
+                client.readContract({
+                  address: chain.usdcAddress as `0x${string}`,
+                  abi: erc20BalanceAbi,
+                  functionName: "balanceOf",
+                  args: [account],
+                }),
+                client.readContract({
+                  address: chain.usdcAddress as `0x${string}`,
+                  abi: erc20BalanceAbi,
+                  functionName: "decimals",
+                }),
+              ]);
 
-          rows.push({
-            id: chain.id,
-            name: chain.name,
-            balance: formatUnits(rawBalance, Number(decimals)),
-            isTarget: Boolean(chain.isTarget),
-            isConfigured: true,
-          });
-        }
+              rows.push({
+                id: chain.id,
+                name: chain.name,
+                balance: formatUnits(rawBalance, Number(decimals)),
+                isTarget: Boolean(chain.isTarget),
+                isConfigured: true,
+              });
+            } catch {
+              rows.push({
+                id: chain.id,
+                name: chain.name,
+                balance: "—",
+                isTarget: Boolean(chain.isTarget),
+                isConfigured: true,
+              });
+            }
+          })
+        );
 
-        setBalances(rows);
+        setBalances(rows.sort((a, b) => a.name.localeCompare(b.name)));
         setBalanceStatus("idle");
       } catch {
         setBalanceStatus("error");
@@ -129,9 +181,280 @@ export function BuyTokensDrawer({
     loadBalances();
   }, [open, configuredChains, walletClient, isInitialized]);
 
+  useEffect(() => {
+    if (!open) return;
+    const loadDecimals = async () => {
+      try {
+        const latestBlock = await publicClient.getBlockNumber();
+        setCurrentBlock(latestBlock);
+
+        const fundingToken = await publicClient.readContract({
+          address: tokenAddress,
+          abi: ERC20RefundableTokenSaleABI,
+          functionName: "FUNDING_TOKEN",
+        });
+        console.log("[BuyTokens] funding token", fundingToken);
+        setFundingTokenAddress(fundingToken as `0x${string}`);
+
+        const [tokenDecimalsValue, fundingDecimalsValue] = await Promise.all([
+          publicClient.readContract({
+            address: tokenAddress,
+            abi: ERC20RefundableTokenSaleABI,
+            functionName: "decimals",
+          }),
+          publicClient.readContract({
+            address: fundingToken as `0x${string}`,
+            abi: erc20BalanceAbi,
+            functionName: "decimals",
+          }),
+        ]);
+
+        setTokenDecimals(Number(tokenDecimalsValue));
+        setFundingTokenDecimals(Number(fundingDecimalsValue));
+      } catch {
+        setTokenDecimals(18);
+        setFundingTokenDecimals(6);
+        setFundingTokenAddress(null);
+      }
+    };
+
+    loadDecimals();
+  }, [open, publicClient, tokenAddress]);
+
+  useEffect(() => {
+    if (!open || !fundingTokenAddress) return;
+    const loadAllowance = async () => {
+      try {
+        if (!walletClient || !isInitialized) return;
+        const [account] = await walletClient.getAddresses();
+        if (!account) return;
+        const currentAllowance = await publicClient.readContract({
+          address: fundingTokenAddress,
+          abi: erc20BalanceAbi,
+          functionName: "allowance",
+          args: [account, tokenAddress],
+        });
+        setAllowance(currentAllowance);
+      } catch {
+        // Keep the last known allowance to avoid flicker when reads fail.
+      }
+    };
+
+    loadAllowance();
+  }, [open, fundingTokenAddress, walletClient, isInitialized, publicClient, tokenAddress]);
+
   const drawerContentStyle = {
     "--initial-transform": "calc(100% + 8px)",
   } as CSSProperties;
+
+  const purchasePriceRaw = useMemo(() => {
+    if (!sale?.purchasePrice) return null;
+    try {
+      return BigInt(sale.purchasePrice);
+    } catch {
+      return null;
+    }
+  }, [sale]);
+
+  const formattedPrice = useMemo(() => {
+    if (!purchasePriceRaw) return "—";
+    try {
+      return formatUnits(purchasePriceRaw, fundingTokenDecimals);
+    } catch {
+      return sale?.purchasePrice ?? "—";
+    }
+  }, [purchasePriceRaw, fundingTokenDecimals, sale]);
+
+  const tokenAmountFromUsd = useMemo(() => {
+    if (!purchasePriceRaw) return null;
+    try {
+      const usdAmountRaw = parseUnits(amount || "0", fundingTokenDecimals);
+      if (usdAmountRaw <= 0n) return null;
+      const tokenScale = 10n ** BigInt(tokenDecimals);
+      const tokensSmallest = (usdAmountRaw * tokenScale) / purchasePriceRaw;
+      if (tokensSmallest <= 0n) return null;
+      return formatUnits(tokensSmallest, tokenDecimals);
+    } catch {
+      return null;
+    }
+  }, [amount, purchasePriceRaw, fundingTokenDecimals, tokenDecimals]);
+
+  const formattedTokenAmountFromUsd = useMemo(() => {
+    if (!tokenAmountFromUsd) return null;
+    const value = Number(tokenAmountFromUsd);
+    if (!Number.isFinite(value)) return tokenAmountFromUsd;
+    if (value > 0 && value < 0.000001) return "<0.000001";
+    return new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 }).format(value);
+  }, [tokenAmountFromUsd]);
+
+  const requiredFundingAmount = useMemo(() => {
+    try {
+      if (!purchasePriceRaw) return 0n;
+      const usdAmountRaw = parseUnits(amount || "0", fundingTokenDecimals);
+      if (usdAmountRaw <= 0n) return 0n;
+      const tokenScale = 10n ** BigInt(tokenDecimals);
+      const tokensSmallest = (usdAmountRaw * tokenScale) / purchasePriceRaw;
+      if (tokensSmallest <= 0n) return 0n;
+      return (tokensSmallest * purchasePriceRaw) / tokenScale;
+    } catch {
+      return 0n;
+    }
+  }, [amount, fundingTokenDecimals, purchasePriceRaw, tokenDecimals]);
+
+  const isApproved = useMemo(() => {
+    if (!walletClient || !isInitialized) return false;
+    if (!requiredFundingAmount) return false;
+    return allowance >= requiredFundingAmount;
+  }, [allowance, isInitialized, requiredFundingAmount, walletClient]);
+
+  const handleApprove = async () => {
+    setApprovalError(null);
+    if (!walletClient || !isInitialized) {
+      setApprovalError("Connect a wallet to approve USDC.");
+      setApprovalStatus("error");
+      return;
+    }
+    if (!fundingTokenAddress) {
+      setApprovalError("Funding token unavailable.");
+      setApprovalStatus("error");
+      return;
+    }
+    setApprovalStatus("submitting");
+    try {
+      const [account] = await walletClient.getAddresses();
+      if (!account) {
+        throw new Error("No wallet address available.");
+      }
+      const hash = await walletClient.writeContract({
+        address: fundingTokenAddress,
+        abi: erc20BalanceAbi,
+        functionName: "approve",
+        args: [tokenAddress, requiredFundingAmount],
+        account,
+      });
+      setApprovalStatus("pending");
+      await publicClient.waitForTransactionReceipt({ hash });
+      setApprovalStatus("success");
+      const currentAllowance = await publicClient.readContract({
+        address: fundingTokenAddress,
+        abi: erc20BalanceAbi,
+        functionName: "allowance",
+        args: [account, tokenAddress],
+      });
+
+      console.log("[BuyTokens] currentAllowance", currentAllowance);
+      setAllowance(currentAllowance);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Approval failed.";
+      setApprovalError(message);
+      setApprovalStatus("error");
+    }
+  };
+
+  const handleBuy = async () => {
+    setError(null);
+    setTxHash(null);
+
+    if (!walletClient || !isInitialized) {
+      setError("Connect a wallet to buy tokens.");
+      setStatus("error");
+      return;
+    }
+
+    if (!purchasePriceRaw) {
+      setError("Sale price is unavailable.");
+      setStatus("error");
+      return;
+    }
+
+
+    // ----- START
+
+    console.log("[BuyTokens] amount(input)", amount);
+    console.log("[BuyTokens] allowance", allowance);
+    console.log("[BuyTokens] unit cost", purchasePriceRaw);
+    console.log("[BuyTokens] fundingTokenDecimals", fundingTokenDecimals);
+
+    let usdAmountRaw: bigint;
+    let tokenAmountRaw: bigint;
+    try {
+      usdAmountRaw = parseUnits(amount || "0", fundingTokenDecimals);
+      if (usdAmountRaw <= 0n) {
+        throw new Error("Enter a USDC amount.");
+      }
+      const tokenScale = 10n ** BigInt(tokenDecimals);
+      tokenAmountRaw = (usdAmountRaw * tokenScale) / purchasePriceRaw;
+      if (tokenAmountRaw < tokenScale) {
+        throw new Error("USDC amount is too low for 1 token.");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Invalid amount.";
+      setError(message);
+      setStatus("error");
+      return;
+    }
+
+    if (!isApproved) {
+      setError("Approve USDC before purchasing.");
+      setStatus("error");
+      return;
+    }
+
+    setStatus("submitting");
+
+    try {
+      const [account] = await walletClient.getAddresses();
+      if (!account) {
+        throw new Error("No wallet address available.");
+      }
+
+      console.log("[BuyTokens] purchasing", tokenAmountRaw, tokenAmountRaw * purchasePriceRaw);
+
+
+      const hash = await walletClient.writeContract({
+        address: tokenAddress,
+        abi: ERC20RefundableTokenSaleABI,
+        functionName: "purchase",
+        args: [tokenAmountRaw, tokenAmountRaw * purchasePriceRaw],
+        account,
+      });
+
+      setTxHash(hash);
+      setStatus("pending");
+      await publicClient.waitForTransactionReceipt({ hash });
+      setStatus("success");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Purchase failed.";
+      setError(message);
+      setStatus("error");
+    }
+  };
+
+  const formattedSaleAmount = useMemo(() => {
+    if (!sale?.saleAmount) return "—";
+    try {
+      return formatUnits(BigInt(sale.saleAmount), 18);
+    } catch {
+      return sale.saleAmount;
+    }
+  }, [sale]);
+
+  const saleStatus = useMemo(() => {
+    if (!sale || currentBlock === null) return null;
+    const start = BigInt(sale.saleStartBlock);
+    const end = BigInt(sale.saleEndBlock);
+    if (currentBlock < start) return "upcoming";
+    if (currentBlock > end) return "closed";
+    return "open";
+  }, [sale, currentBlock]);
+
+  const saleStatusLabel = useMemo(() => {
+    if (!saleStatus) return null;
+    if (saleStatus === "open") return "Open";
+    if (saleStatus === "closed") return "Closed";
+    return "Upcoming";
+  }, [saleStatus]);
+
 
   return (
     <Drawer.Root
@@ -141,6 +464,11 @@ export function BuyTokensDrawer({
         setOpen(nextOpen);
         if (!nextOpen) {
           setAmount("");
+          setStatus("idle");
+          setError(null);
+          setTxHash(null);
+          setApprovalStatus("idle");
+          setApprovalError(null);
         }
       }}
     >
@@ -161,42 +489,153 @@ export function BuyTokensDrawer({
             </Drawer.Title>
             <Drawer.Description className="leading-6 mt-2 text-sm text-gray-600">
               Purchase {tokenSymbol} from the active sale.
+              {formattedPrice !== "—" ? ` ${formattedPrice} USDC per token.` : ""}
             </Drawer.Description>
             <div className="mt-6">
               <label htmlFor="buy-amount" className="text-sm font-semibold text-gray-900">
-                Amount
+                Amount (USDC)
               </label>
               <Input
                 id="buy-amount"
                 type="text"
                 inputMode="decimal"
-                placeholder="1000"
+                placeholder="10"
                 className="mt-2 h-11 rounded-xl border-2 px-4 text-base"
                 value={amount}
-                onChange={(event) => setAmount(event.target.value)}
+                onChange={(event) => {
+                  const nextValue = event.target.value.replace(/,/g, "");
+                  const sanitized = nextValue.replace(/[^0-9.]/g, "");
+                  const [whole, ...rest] = sanitized.split(".");
+                  const nextAmount = rest.length > 0 ? `${whole}.${rest.join("")}` : whole;
+                  setAmount(nextAmount);
+                }}
               />
               <p className="mt-2 text-xs text-gray-500">
-                Enter the amount of {tokenSymbol} you want to purchase.
+                Enter the USDC amount you want to spend.
               </p>
             </div>
-            <Button className="mt-8 h-12 w-full rounded-xl text-base font-semibold">
-              Continue to Buy
+            <Button
+              className="mt-8 h-12 w-full rounded-xl text-base font-semibold"
+              onClick={handleBuy}
+              disabled={
+                status === "submitting" ||
+                status === "pending" ||
+                !isApproved
+              }
+            >
+              {status === "pending"
+                ? "Buying..."
+                : formattedTokenAmountFromUsd
+                  ? `Buy ${formattedTokenAmountFromUsd} ${tokenSymbol}`
+                  : "Continue to Buy"}
             </Button>
-            <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <div className="text-sm font-semibold text-gray-900">USDC balances</div>
+            {formattedTokenAmountFromUsd && (
+              <div className="mt-2 text-xs text-gray-500">
+                Estimated receive: {formattedTokenAmountFromUsd} {tokenSymbol}
+              </div>
+            )}
+            {!isApproved && requiredFundingAmount > 0n && (
+              <Button
+                variant="outline"
+                className="mt-3 h-11 w-full rounded-xl text-sm font-semibold"
+                onClick={handleApprove}
+                disabled={approvalStatus === "submitting" || approvalStatus === "pending"}
+              >
+                {approvalStatus === "pending" ? "Approving..." : "Approve USDC"}
+              </Button>
+            )}
+            {approvalError && (
+              <div className="mt-3 text-sm text-red-600">
+                {approvalError}
+              </div>
+            )}
+            {error && (
+              <div className="mt-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+            {status === "success" && (
+              <div className="mt-3 text-sm text-emerald-600">
+                Purchase submitted.
+                {txHash ? ` Tx: ${txHash.slice(0, 10)}...` : ""}
+              </div>
+            )}
+            {sale && (
+              <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold text-gray-900">Sale details</div>
+                  {saleStatusLabel && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        saleStatus === "open"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : saleStatus === "closed"
+                            ? "bg-gray-100 text-gray-600"
+                            : "bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      {saleStatusLabel}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 space-y-2 text-sm text-gray-600">
+                  <div className="flex items-center justify-between">
+                    <span>Price per token</span>
+                    <span className="font-semibold text-gray-900">{formattedPrice} USDC</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Tokens for sale</span>
+                    <span className="font-semibold text-gray-900">{formattedSaleAmount}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Start block</span>
+                    <span className="font-semibold text-gray-900">{sale.saleStartBlock}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>End block</span>
+                    <span className="font-semibold text-gray-900">{sale.saleEndBlock}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>Created in block</span>
+                    <span className="font-medium text-gray-700">{sale.blockNumber}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>Current block</span>
+                    <span className="font-medium text-gray-700">
+                      {currentBlock ? currentBlock.toString() : "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-gray-900">USDC balances</div>
+                <div className="text-[11px] font-medium text-gray-400">Bridge to Base Sepolia</div>
+              </div>
               <div className="mt-3 space-y-2 text-sm text-gray-600">
                 {balanceStatus === "loading" && (
-                  <div className="text-xs text-gray-500">Loading balances…</div>
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
+                    Loading balances…
+                  </div>
                 )}
                 {balanceStatus === "error" && (
-                  <div className="text-xs text-red-600">Failed to load balances.</div>
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+                    Failed to load balances.
+                  </div>
                 )}
                 {balanceStatus === "idle" && balances.length === 0 && (
-                  <div className="text-xs text-gray-500">Connect a wallet to see balances.</div>
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
+                    Connect a wallet to see balances.
+                  </div>
                 )}
                 {balances.map((row) => (
-                  <div key={row.id} className="flex items-center justify-between">
+                  <div key={row.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
                     <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <TokenIcon symbol="USDC" size={18} variant="branded" className="rounded-full" />
+                        <NetworkIcon name={row.name} size={18} variant="branded" className="rounded-full" />
+                      </div>
                       <span className="font-medium text-gray-900">{row.name}</span>
                       {row.isTarget && (
                         <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -205,17 +644,17 @@ export function BuyTokensDrawer({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={row.isConfigured ? "text-gray-900" : "text-gray-400"}>
+                      <span className={`tabular-nums ${row.isConfigured ? "text-gray-900" : "text-gray-400"}`}>
                         {row.balance}
                       </span>
                       {!row.isTarget && (
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 rounded-full px-3 text-xs"
+                          className="h-8 rounded-full px-3 text-xs text-gray-500"
                           disabled
                         >
-                          Bridge to Base
+                          Bridge
                         </Button>
                       )}
                     </div>
@@ -223,8 +662,8 @@ export function BuyTokensDrawer({
                 ))}
               </div>
             </div>
-            <p className="mt-3 text-xs text-gray-400">
-              Contract: {tokenAddress.slice(0, 8)}…{tokenAddress.slice(-4)}
+            <p className="mt-3 text-xs text-gray-400 text-center">
+              Native USDC bridge powered by Arc.
             </p>
           </div>
         </Drawer.Content>
