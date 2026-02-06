@@ -12,6 +12,8 @@ contract ERC20RefundableTokenSaleTest is Test {
     ERC20RefundableTokenSaleFactory public factory;
     ERC20RefundableTokenSale public token;
     MockERC20 public fundingToken;
+    uint8 public tokenDecimals;
+    uint8 public fundingDecimals;
 
     address public beneficiary;
     address public owner;
@@ -54,6 +56,8 @@ contract ERC20RefundableTokenSaleTest is Test {
             address(fundingToken)
         );
         token = ERC20RefundableTokenSale(tokenAddress);
+        tokenDecimals = token.decimals();
+        fundingDecimals = fundingToken.decimals();
 
         // Create a sale
         uint256 saleStartBlock = block.number;
@@ -72,9 +76,14 @@ contract ERC20RefundableTokenSaleTest is Test {
         }));
 
         // Mint funding tokens to test users
-        fundingToken.mint(alice, 100000 ether);
-        fundingToken.mint(bob, 100000 ether);
-        fundingToken.mint(carol, 100000 ether);
+        uint256 fundingSeed = 100000 * 10 ** fundingDecimals;
+        fundingToken.mint(alice, fundingSeed);
+        fundingToken.mint(bob, fundingSeed);
+        fundingToken.mint(carol, fundingSeed);
+    }
+
+    function _fundingAmount(uint256 tokenAmount) internal view returns (uint256) {
+        return tokenAmount * PURCHASE_PRICE / (10 ** tokenDecimals);
     }
 
     // ---------------------------------------------------------------
@@ -134,7 +143,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_Purchase() public {
         uint256 tokenAmount = 10 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         vm.startPrank(alice);
         fundingToken.approve(address(token), fundingAmount);
@@ -155,7 +164,7 @@ contract ERC20RefundableTokenSaleTest is Test {
         vm.roll(token.tokenSaleEndBlock() + 1);
 
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE;
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         vm.startPrank(alice);
         fundingToken.approve(address(token), fundingAmount);
@@ -167,7 +176,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_PurchaseRevertsIfInsufficientTokensForSale() public {
         uint256 tokenAmount = token.remainingTokensForSale() + 1;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE;
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         vm.startPrank(alice);
         fundingToken.approve(address(token), fundingAmount);
@@ -179,7 +188,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_PurchaseRevertsIfMaxFundingExceeded() public {
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
         uint256 maxFundingAmount = fundingAmount - 1;
 
         vm.startPrank(alice);
@@ -196,7 +205,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_RefundableBalanceDecaysOverTime() public {
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE;
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         vm.startPrank(alice);
         fundingToken.approve(address(token), fundingAmount);
@@ -223,7 +232,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_TotalRefundableSupply() public {
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE;
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         // Alice purchases
         vm.startPrank(alice);
@@ -247,7 +256,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_Refund() public {
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         vm.startPrank(alice);
         fundingToken.approve(address(token), fundingAmount);
@@ -256,15 +265,16 @@ contract ERC20RefundableTokenSaleTest is Test {
         uint256 refundableBalance = token.refundableBalanceOf(alice);
         uint256 aliceFundingBefore = fundingToken.balanceOf(alice);
         uint256 aliceTokenBefore = token.balanceOf(alice);
+        uint256 expectedFunding = _fundingAmount(refundableBalance);
 
         vm.expectEmit(true, true, false, false);
-        emit Refunded(alice, alice, refundableBalance, 0);
+        emit Refunded(alice, alice, refundableBalance, expectedFunding);
 
         (uint256 refundedTokens, uint256 fundingReceived) = token.refund(refundableBalance, alice);
         vm.stopPrank();
 
         assertEq(refundedTokens, refundableBalance);
-        assertGt(fundingReceived, 0);
+        assertEq(fundingReceived, expectedFunding);
         assertEq(token.balanceOf(alice), aliceTokenBefore - refundedTokens);
         assertEq(fundingToken.balanceOf(alice), aliceFundingBefore + fundingReceived);
         assertEq(token.refundableBalanceOf(alice), 0);
@@ -272,7 +282,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_RefundToDifferentReceiver() public {
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE;
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         vm.startPrank(alice);
         fundingToken.approve(address(token), fundingAmount);
@@ -289,7 +299,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_PartialRefund() public {
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         vm.startPrank(alice);
         fundingToken.approve(address(token), fundingAmount);
@@ -307,7 +317,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_RefundCappedAtRefundableBalance() public {
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         vm.startPrank(alice);
         fundingToken.approve(address(token), fundingAmount);
@@ -324,7 +334,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_RefundFailsWithNoRefundableBalance() public {
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE;
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         vm.startPrank(alice);
         fundingToken.approve(address(token), fundingAmount);
@@ -342,63 +352,63 @@ contract ERC20RefundableTokenSaleTest is Test {
     // Beneficiary Claiming Tests
     // ---------------------------------------------------------------
 
-    // function test_ClaimableFunds() public {
-    //     uint256 tokenAmount = 100 ether;
-    //     uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
+    function test_ClaimableFunds() public {
+        uint256 tokenAmount = 100 ether;
+        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
 
-    //     // Alice purchases
-    //     vm.startPrank(alice);
-    //     fundingToken.approve(address(token), fundingAmount);
-    //     token.purchase(tokenAmount, fundingAmount);
-    //     vm.stopPrank();
+        // Alice purchases
+        vm.startPrank(alice);
+        fundingToken.approve(address(token), fundingAmount);
+        token.purchase(tokenAmount, fundingAmount);
+        vm.stopPrank();
 
-    //     // Initially, most funds are locked for refunds
-    //     uint256 claimable = token.claimableFunds();
-    //     assertGt(claimable, 0);
-    //     assertLt(claimable, fundingAmount);
-    // }
+        // Initially, most funds are locked for refunds
+        uint256 claimable = token.claimableFunds();
+        assertGt(claimable, 0);
+        assertLt(claimable, fundingAmount);
+    }
 
-    // function test_ClaimableFundsIncreasesAfterDecay() public {
-    //     uint256 tokenAmount = 100 ether;
-    //     uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
+    function test_ClaimableFundsIncreasesAfterDecay() public {
+        uint256 tokenAmount = 100 ether;
+        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
 
-    //     vm.startPrank(alice);
-    //     fundingToken.approve(address(token), fundingAmount);
-    //     token.purchase(tokenAmount, fundingAmount);
-    //     vm.stopPrank();
+        vm.startPrank(alice);
+        fundingToken.approve(address(token), fundingAmount);
+        token.purchase(tokenAmount, fundingAmount);
+        vm.stopPrank();
 
-    //     uint256 claimableBefore = token.claimableFunds();
+        uint256 claimableBefore = token.claimableFunds();
 
-    //     // Fast forward to middle of decay
-    //     vm.roll(block.number + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION / 2);
+        // Fast forward to middle of decay
+        vm.roll(block.number + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION / 2);
 
-    //     uint256 claimableDuringDecay = token.claimableFunds();
-    //     assertGt(claimableDuringDecay, claimableBefore);
+        uint256 claimableDuringDecay = token.claimableFunds();
+        assertGt(claimableDuringDecay, claimableBefore);
 
-    //     // Fast forward past decay
-    //     vm.roll(block.number + REFUNDABLE_DECAY_BLOCK_DURATION);
+        // Fast forward past decay
+        vm.roll(block.number + REFUNDABLE_DECAY_BLOCK_DURATION);
 
-    //     uint256 claimableAfterDecay = token.claimableFunds();
-    //     assertGt(claimableAfterDecay, claimableDuringDecay);
-    // }
+        uint256 claimableAfterDecay = token.claimableFunds();
+        assertGt(claimableAfterDecay, claimableDuringDecay);
+    }
 
-    // function test_ClaimFundsForBeneficiary() public {
-    //     uint256 tokenAmount = 100 ether;
-    //     uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
+    function test_ClaimFundsForBeneficiary() public {
+        uint256 tokenAmount = 100 ether;
+        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE / (10 ** fundingToken.decimals());
 
-    //     vm.startPrank(alice);
-    //     fundingToken.approve(address(token), fundingAmount);
-    //     token.purchase(tokenAmount, fundingAmount);
-    //     vm.stopPrank();
+        vm.startPrank(alice);
+        fundingToken.approve(address(token), fundingAmount);
+        token.purchase(tokenAmount, fundingAmount);
+        vm.stopPrank();
 
-    //     uint256 claimable = token.claimableFunds();
-    //     uint256 beneficiaryBalanceBefore = fundingToken.balanceOf(beneficiary);
+        uint256 claimable = token.claimableFunds();
+        uint256 beneficiaryBalanceBefore = fundingToken.balanceOf(beneficiary);
 
-    //     uint256 claimed = token.claimFundsForBeneficiary();
+        uint256 claimed = token.claimFundsForBeneficiary();
 
-    //     assertEq(claimed, claimable);
-    //     assertEq(fundingToken.balanceOf(beneficiary), beneficiaryBalanceBefore + claimed);
-    // }
+        assertEq(claimed, claimable);
+        assertEq(fundingToken.balanceOf(beneficiary), beneficiaryBalanceBefore + claimed);
+    }
 
     // ---------------------------------------------------------------
     // Sale Management Tests
@@ -477,7 +487,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_FullLifecycleScenario() public {
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE;
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         // Initial purchase
         vm.startPrank(alice);
@@ -525,7 +535,7 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_MultipleUsersScenario() public {
         uint256 tokenAmount = 100 ether;
-        uint256 fundingAmount = tokenAmount * PURCHASE_PRICE;
+        uint256 fundingAmount = _fundingAmount(tokenAmount);
 
         // Alice, Bob, and Carol purchase
         address[] memory users = new address[](3);

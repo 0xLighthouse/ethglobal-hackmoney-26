@@ -61,7 +61,7 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         uint256 currentlyRefundableTokens = _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight);
 
         // Calculate locked funding using the purchase price
-        uint256 lockedFunding = currentlyRefundableTokens * tokenSalePurchasePrice;
+        uint256 lockedFunding = currentlyRefundableTokens * tokenSalePurchasePrice / (10 ** decimals());
 
         // The beneficiary can claim whatever is not locked for refunds
         return fundingTokensHeld > lockedFunding ? fundingTokensHeld - lockedFunding : 0;
@@ -83,7 +83,7 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
             revert InsufficientTokensForSale();
         }
 
-        uint256 fundingTokenAmount = amount * tokenSalePurchasePrice / (10 ** IERC20Metadata(FUNDING_TOKEN).decimals());
+        uint256 fundingTokenAmount = amount * tokenSalePurchasePrice / (10 ** decimals());
 
         if (fundingTokenAmount > maxFundingAmount) {
             revert MaxFundingAmountExceeded();

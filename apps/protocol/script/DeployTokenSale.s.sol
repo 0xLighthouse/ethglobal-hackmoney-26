@@ -39,7 +39,7 @@ contract DeployTokenSale is Script {
         address deployer = vm.addr(deployerPrivateKey);
 
         // Get factory address from environment
-        address factoryAddress = 0xAA4c01f7B2627a227B257378C73BC52Abf74e71e;
+        address factoryAddress = 0xF0d3Cc6ea346d35b4830f99Efeda99925AA8a056;
         ERC20RefundableTokenSaleFactory factory = ERC20RefundableTokenSaleFactory(factoryAddress);
 
         // Get required parameters
