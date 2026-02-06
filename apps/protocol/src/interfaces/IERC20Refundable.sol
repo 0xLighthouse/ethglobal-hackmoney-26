@@ -19,6 +19,9 @@ interface IERC20Refundable is IERC20 {
     // State Variables
     // ---------------------------------------------------------------
 
+    // Purchase price in funding tokens
+    function tokenSalePurchasePrice() external view returns (uint256);
+    
     /// @notice Block height when the refund window starts
     function refundWindowStartBlock() external view returns (uint64);
 
