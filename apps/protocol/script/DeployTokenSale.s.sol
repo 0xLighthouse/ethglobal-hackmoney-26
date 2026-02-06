@@ -18,7 +18,7 @@ contract DeployTokenSale is Script {
         uint64 bpsStart = 8000; // 80%
         uint64 decayDelay = 50; // 50 blocks (10 minutes)
         uint64 decayDuration = 100; // 100 blocks (2 days)
-
+        uint64 additionalTokensReservedForLiquidityBps = 0;
 
         token.createSale(
             IERC20RefundableTokenSale.SaleParams({
@@ -28,7 +28,8 @@ contract DeployTokenSale is Script {
                 saleEndBlock: uint64(endBlock),
                 refundableDecayStartBlock: uint64(startBlock + decayDelay),
                 refundableDecayEndBlock: uint64(startBlock + decayDelay + decayDuration),
-                refundableBpsAtStart: bpsStart
+                refundableBpsAtStart: bpsStart,
+                additionalTokensReservedForLiquidityBps: additionalTokensReservedForLiquidityBps
             })
         );
     }
@@ -52,13 +53,8 @@ contract DeployTokenSale is Script {
 
         // Deploy token through factory
         vm.startBroadcast(deployerPrivateKey);
-        address tokenAddress = factory.deployRefundableToken(
-            tokenName,
-            tokenSymbol,
-            maxSupply,
-            beneficiary,
-            fundingToken
-        );
+        address tokenAddress =
+            factory.deployRefundableToken(tokenName, tokenSymbol, maxSupply, beneficiary, fundingToken);
         vm.stopBroadcast();
 
         token = ERC20RefundableTokenSale(tokenAddress);

@@ -41,23 +41,19 @@ contract ERC20RefundableTokenSaleTest is Test {
         carol = makeAddr("carol");
 
         // Get pool manager address from environment
-        address poolManager = vm.envAddress("POOL_MANAGER");
+        address poolManager = vm.envOr("POOL_MANAGER", address(0));
+        address positionManager = vm.envOr("POSITION_MANAGER", address(0));
 
         // Deploy factory
-        factory = new ERC20RefundableTokenSaleFactory(poolManager);
+        factory = new ERC20RefundableTokenSaleFactory(poolManager, positionManager);
 
         // Deploy funding token
         fundingToken = new MockERC20("Mock USDC", "USDC", 6);
 
         // Deploy refundable token via factory
         vm.prank(owner);
-        address tokenAddress = factory.deployRefundableToken(
-            "Refundable Token",
-            "RTOKEN",
-            MAX_SUPPLY,
-            beneficiary,
-            address(fundingToken)
-        );
+        address tokenAddress =
+            factory.deployRefundableToken("Refundable Token", "RTOKEN", MAX_SUPPLY, beneficiary, address(fundingToken));
         token = ERC20RefundableTokenSale(tokenAddress);
         tokenDecimals = token.decimals();
         fundingDecimals = fundingToken.decimals();
@@ -68,15 +64,20 @@ contract ERC20RefundableTokenSaleTest is Test {
         uint256 saleAmount = 10000 ether;
 
         vm.prank(owner);
-        token.createSale(IERC20RefundableTokenSale.SaleParams({
-            saleAmount: saleAmount,
-            purchasePrice: PURCHASE_PRICE,
-            saleStartBlock: uint64(saleStartBlock),
-            saleEndBlock: uint64(saleEndBlock),
-            refundableDecayStartBlock: uint64(saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY),
-            refundableDecayEndBlock: uint64(saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION),
-            refundableBpsAtStart: REFUNDABLE_BPS_START
-        }));
+        token.createSale(
+            IERC20RefundableTokenSale.SaleParams({
+                saleAmount: saleAmount,
+                purchasePrice: PURCHASE_PRICE,
+                saleStartBlock: uint64(saleStartBlock),
+                saleEndBlock: uint64(saleEndBlock),
+                refundableDecayStartBlock: uint64(saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY),
+                refundableDecayEndBlock: uint64(
+                    saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION
+                ),
+                refundableBpsAtStart: REFUNDABLE_BPS_START,
+                additionalTokensReservedForLiquidityBps: 0
+            })
+        );
 
         // Mint funding tokens to test users
         uint256 fundingSeed = 100000 * 10 ** fundingDecimals;
@@ -101,13 +102,8 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_FactoryDeployMultipleTokens() public {
         vm.prank(owner);
-        address secondToken = factory.deployRefundableToken(
-            "Second Token",
-            "SECOND",
-            MAX_SUPPLY,
-            beneficiary,
-            address(fundingToken)
-        );
+        address secondToken =
+            factory.deployRefundableToken("Second Token", "SECOND", MAX_SUPPLY, beneficiary, address(fundingToken));
 
         assertEq(factory.totalTokensDeployed(), 2);
         assertTrue(factory.isDeployedToken(secondToken));
@@ -420,13 +416,8 @@ contract ERC20RefundableTokenSaleTest is Test {
     function test_CreateSale() public {
         // Deploy a fresh token
         vm.prank(owner);
-        address freshTokenAddress = factory.deployRefundableToken(
-            "Fresh Token",
-            "FRESH",
-            MAX_SUPPLY,
-            beneficiary,
-            address(fundingToken)
-        );
+        address freshTokenAddress =
+            factory.deployRefundableToken("Fresh Token", "FRESH", MAX_SUPPLY, beneficiary, address(fundingToken));
         ERC20RefundableTokenSale freshToken = ERC20RefundableTokenSale(freshTokenAddress);
 
         uint256 saleStartBlock = block.number + 10;
@@ -437,15 +428,20 @@ contract ERC20RefundableTokenSaleTest is Test {
         vm.expectEmit(false, false, false, true);
         emit SaleCreated(saleAmount, PURCHASE_PRICE, saleStartBlock, saleEndBlock);
 
-        freshToken.createSale(IERC20RefundableTokenSale.SaleParams({
-            saleAmount: saleAmount,
-            purchasePrice: PURCHASE_PRICE,
-            saleStartBlock: uint64(saleStartBlock),
-            saleEndBlock: uint64(saleEndBlock),
-            refundableDecayStartBlock: uint64(saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY),
-            refundableDecayEndBlock: uint64(saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION),
-            refundableBpsAtStart: REFUNDABLE_BPS_START
-        }));
+        freshToken.createSale(
+            IERC20RefundableTokenSale.SaleParams({
+                saleAmount: saleAmount,
+                purchasePrice: PURCHASE_PRICE,
+                saleStartBlock: uint64(saleStartBlock),
+                saleEndBlock: uint64(saleEndBlock),
+                refundableDecayStartBlock: uint64(saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY),
+                refundableDecayEndBlock: uint64(
+                    saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION
+                ),
+                refundableBpsAtStart: REFUNDABLE_BPS_START,
+                additionalTokensReservedForLiquidityBps: 0
+            })
+        );
 
         assertEq(freshToken.remainingTokensForSale(), saleAmount);
         assertEq(freshToken.tokenSalePurchasePrice(), PURCHASE_PRICE);
@@ -453,26 +449,26 @@ contract ERC20RefundableTokenSaleTest is Test {
 
     function test_CreateSaleRevertsIfNotOwner() public {
         vm.prank(owner);
-        address freshTokenAddress = factory.deployRefundableToken(
-            "Fresh Token",
-            "FRESH",
-            MAX_SUPPLY,
-            beneficiary,
-            address(fundingToken)
-        );
+        address freshTokenAddress =
+            factory.deployRefundableToken("Fresh Token", "FRESH", MAX_SUPPLY, beneficiary, address(fundingToken));
         ERC20RefundableTokenSale freshToken = ERC20RefundableTokenSale(freshTokenAddress);
 
         vm.prank(alice);
         vm.expectRevert();
-        freshToken.createSale(IERC20RefundableTokenSale.SaleParams({
-            saleAmount: 5000 ether,
-            purchasePrice: PURCHASE_PRICE,
-            saleStartBlock: uint64(block.number),
-            saleEndBlock: uint64(block.number + 1000),
-            refundableDecayStartBlock: uint64(block.number + REFUNDABLE_DECAY_BLOCK_DELAY),
-            refundableDecayEndBlock: uint64(block.number + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION),
-            refundableBpsAtStart: REFUNDABLE_BPS_START
-        }));
+        freshToken.createSale(
+            IERC20RefundableTokenSale.SaleParams({
+                saleAmount: 5000 ether,
+                purchasePrice: PURCHASE_PRICE,
+                saleStartBlock: uint64(block.number),
+                saleEndBlock: uint64(block.number + 1000),
+                refundableDecayStartBlock: uint64(block.number + REFUNDABLE_DECAY_BLOCK_DELAY),
+                refundableDecayEndBlock: uint64(
+                    block.number + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION
+                ),
+                refundableBpsAtStart: REFUNDABLE_BPS_START,
+                additionalTokensReservedForLiquidityBps: 0
+            })
+        );
     }
 
     function test_EndSale() public {

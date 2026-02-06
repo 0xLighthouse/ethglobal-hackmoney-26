@@ -40,6 +40,7 @@ interface IERC20RefundableTokenSale is IERC20Refundable {
         uint64 refundableDecayStartBlock;
         uint64 refundableDecayEndBlock;
         uint64 refundableBpsAtStart;
+        uint64 additionalTokensReservedForLiquidityBps;
     }
 
     /// @notice Create a new token sale

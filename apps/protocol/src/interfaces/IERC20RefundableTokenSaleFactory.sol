@@ -4,20 +4,6 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IERC20RefundableTokenSaleFactory {
-
-    // ---------------------------------------------------------------
-    // Structs
-    // ---------------------------------------------------------------
-
-    /// @notice Parameters for deploying an ERC20RefundableTokenSale contract
-    struct DeployRefundableTokenParams {
-        string name;
-        string symbol;
-        uint256 maxSupply;
-        address beneficiary;
-        address fundingToken;
-    }
-
     // ---------------------------------------------------------------
     // State Variables
     // ---------------------------------------------------------------
@@ -60,11 +46,6 @@ interface IERC20RefundableTokenSaleFactory {
         address fundingToken
     ) external returns (address token);
 
-    /// @notice Deploy a new ERC20RefundableTokenSale contract using struct
-    /// @param params Deployment parameters
-    /// @return token Address of the newly deployed token contract
-    function deployRefundableToken(DeployRefundableTokenParams calldata params) external returns (address token);
-
     // ---------------------------------------------------------------
     // Events
     // ---------------------------------------------------------------
@@ -78,5 +59,4 @@ interface IERC20RefundableTokenSaleFactory {
         string symbol,
         uint256 maxSupply
     );
-
 }
