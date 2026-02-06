@@ -16,7 +16,6 @@ ponder.on("ERC20RefundableTokenSaleFactory:RefundableTokenDeployed", async ({ ev
 });
 
 ponder.on("ERC20RefundableTokenSale:SaleCreated", async ({ event, context }) => {
-
   await context.db.insert(schema.tokenSale).values({
     id: event.id,
     token: event.log?.address,
@@ -24,6 +23,36 @@ ponder.on("ERC20RefundableTokenSale:SaleCreated", async ({ event, context }) => 
     purchasePrice: event.args.purchasePrice,
     saleStartBlock: event.args.saleStartBlock,
     saleEndBlock: event.args.saleEndBlock,
+    blockNumber: event.block.number,
+    txHash: event.transaction.hash
+  });
+});
+
+ponder.on("ERC20RefundableTokenSale:Purchased", async ({ event, context }) => {
+  const tokenAddress = event.log?.address;
+  if (!tokenAddress) return;
+
+  await context.db.insert(schema.tokenSaleActivity).values({
+    id: event.id,
+    token: tokenAddress,
+    kind: "purchase",
+    tokenAmount: event.args.tokensPurchased,
+    fundingAmount: event.args.fundingAmountSpent,
+    blockNumber: event.block.number,
+    txHash: event.transaction.hash
+  });
+});
+
+ponder.on("ERC20RefundableTokenSale:Refunded", async ({ event, context }) => {
+  const tokenAddress = event.log?.address;
+  if (!tokenAddress) return;
+
+  await context.db.insert(schema.tokenSaleActivity).values({
+    id: event.id,
+    token: tokenAddress,
+    kind: "refund",
+    tokenAmount: event.args.tokenAmount,
+    fundingAmount: event.args.fundingTokenAmount,
     blockNumber: event.block.number,
     txHash: event.transaction.hash
   });

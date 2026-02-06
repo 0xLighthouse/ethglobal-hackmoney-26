@@ -6,7 +6,9 @@ import { useWeb3 } from "@/providers/web3";
 import { CreateSaleDrawer } from "@/components/drawers/create-sale-drawer";
 import { BuyTokensDrawer } from "@/components/drawers/buy-tokens-drawer";
 import { CreateTokenDialog } from "@/components/dialogs/create-token-dialog";
-import { parseUnits } from "viem";
+import { formatUnits } from "viem";
+import { resolveAvatar } from "@/lib/utils";
+import { NetworkBase } from "@web3icons/react";
 
 const DEFAULT_INDEXER_URL = "http://localhost:42069";
 const explorerBaseUrl =
@@ -47,7 +49,7 @@ const shortAddress = (value: string) => {
 const formatMaxSupply = (value: string) => {
   if (!value) return "—";
   try {
-    return new Intl.NumberFormat("en-US").format(Number(parseUnits(value, 18)));
+    return new Intl.NumberFormat("en-US").format(Number(formatUnits(BigInt(value), 18)));
   } catch {
     return "—";
   }
@@ -184,7 +186,7 @@ export function TokenDeploymentsTable() {
   }, []);
 
   return (
-    <section className="mt-6">
+    <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-semibold text-gray-900">Recently Created</h2>
         <div className="flex items-center gap-2">
@@ -205,13 +207,11 @@ export function TokenDeploymentsTable() {
         </div>
       )}
 
-      <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200 bg-white">
+      <div className="mt-4 overflow-hidden border-gray-200 bg-white">
         <table className="w-full text-left text-sm md:text-base">
           <thead className="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-5 py-4">Token</th>
-              <th className="px-5 py-4">Network</th>
-              <th className="px-5 py-4">Token Address</th>
               <th className="px-5 py-4">Max Supply</th>
               <th className="px-5 py-4">Beneficiary</th>
               <th className="px-5 py-4">Status</th>
@@ -221,7 +221,7 @@ export function TokenDeploymentsTable() {
           <tbody>
             {deployments.length === 0 && status !== "error" && (
               <tr>
-                <td className="px-5 py-8 text-gray-500" colSpan={7}>
+                <td className="px-5 py-8 text-gray-500" colSpan={5}>
                   {status === "loading" ? "Loading deployments..." : "No deployments yet."}
                 </td>
               </tr>
@@ -234,26 +234,47 @@ export function TokenDeploymentsTable() {
               return (
                 <tr key={deployment.id} className="border-t border-gray-100">
                   <td className="px-5 py-5">
-                    <div className="font-medium text-gray-900">{deployment.name}</div>
-                    <div className="text-xs font-mono text-gray-500">{deployment.symbol}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-9 w-9">
+                        <img
+                          src={resolveAvatar(deployment.token, 36)}
+                          alt={`${deployment.name} avatar`}
+                          className="h-9 w-9 rounded-full border border-gray-200 bg-gray-100"
+                          onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                          }}
+                        />
+                        <span className="absolute -bottom-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                          <NetworkBase variant="branded" size={12} />
+                        </span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">{deployment.name}{' '}<span className="text-xs font-mono text-gray-500">{deployment.symbol}</span></div>
+                        <a
+                          className="mt-1 inline-flex text-xs font-mono text-gray-400 hover:text-gray-600"
+                          href={`${explorerBaseUrl}/address/${deployment.token}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={deployment.token}
+                        >
+                          {shortAddress(deployment.token)}
+                        </a>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-5 py-5 text-gray-700">Base</td>
+                  <td className="px-5 py-5 text-gray-700">
+                    {formatMaxSupply(deployment.maxSupply)} {deployment.symbol}
+                  </td>
                   <td className="px-5 py-5 text-gray-700">
                     <a
                       className="font-mono text-gray-700 hover:text-gray-900"
-                      href={`${explorerBaseUrl}/address/${deployment.token}`}
+                      href={`${explorerBaseUrl}/address/${deployment.beneficiary}`}
                       target="_blank"
                       rel="noreferrer"
-                      title={deployment.token}
+                      title={deployment.beneficiary}
                     >
-                      {shortAddress(deployment.token)}
+                      {shortAddress(deployment.beneficiary)}
                     </a>
-                  </td>
-                  <td className="px-5 py-5 text-gray-700">
-                    {formatMaxSupply(deployment.maxSupply)}
-                  </td>
-                  <td className="px-5 py-5 text-gray-700">
-                    <span className="font-mono">{shortAddress(deployment.beneficiary)}</span>
                   </td>
                   <td className="px-5 py-5 text-gray-500">
                     {saleStatus === "active" && (

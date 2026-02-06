@@ -22,3 +22,13 @@ export const tokenSale = onchainTable("token_sales", (t) => ({
   blockNumber: t.bigint().notNull(),
   txHash: t.hex().notNull()
 }));
+
+export const tokenSaleActivity = onchainTable("token_sale_activity", (t) => ({
+  id: t.text().primaryKey(),
+  token: t.hex().notNull(),
+  kind: t.text().notNull(),
+  tokenAmount: t.bigint().notNull(),
+  fundingAmount: t.bigint().notNull(),
+  blockNumber: t.bigint().notNull(),
+  txHash: t.hex().notNull()
+}));

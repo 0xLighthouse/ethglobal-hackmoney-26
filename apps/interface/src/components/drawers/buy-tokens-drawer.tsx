@@ -292,10 +292,7 @@ export function BuyTokensDrawer({
       if (!purchasePriceRaw) return 0n;
       const usdAmountRaw = parseUnits(amount || "0", fundingTokenDecimals);
       if (usdAmountRaw <= 0n) return 0n;
-      const tokenScale = 10n ** BigInt(tokenDecimals);
-      const tokensSmallest = (usdAmountRaw * tokenScale) / purchasePriceRaw;
-      if (tokensSmallest <= 0n) return 0n;
-      return (tokensSmallest * purchasePriceRaw) / tokenScale;
+      return usdAmountRaw;
     } catch {
       return 0n;
     }
@@ -408,14 +405,14 @@ export function BuyTokensDrawer({
         throw new Error("No wallet address available.");
       }
 
-      console.log("[BuyTokens] purchasing", tokenAmountRaw, tokenAmountRaw * purchasePriceRaw);
+      console.log("[BuyTokens] purchasing", tokenAmountRaw, usdAmountRaw);
 
 
       const hash = await walletClient.writeContract({
         address: tokenAddress,
         abi: ERC20RefundableTokenSaleABI,
         functionName: "purchase",
-        args: [tokenAmountRaw, tokenAmountRaw * purchasePriceRaw],
+        args: [tokenAmountRaw, usdAmountRaw],
         account,
       });
 
