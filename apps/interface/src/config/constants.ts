@@ -3,7 +3,7 @@ import { baseSepolia, sepolia, optimismSepolia, arbitrumSepolia } from "viem/cha
 
 export const BASE_SEPOLIA_FACTORY_ADDRESS =
   (process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}` | undefined) ??
-  "0xAA4c01f7B2627a227B257378C73BC52Abf74e71e";
+  "0xE22e0ECeD45D869DE221106a743c672F502b4dF3";
 
 
 // TODO: For now just use USDC on Base Sepolia

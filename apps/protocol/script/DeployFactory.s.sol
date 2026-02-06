@@ -5,7 +5,9 @@ import {Script, console} from "forge-std/Script.sol";
 import {ERC20RefundableTokenSaleFactory} from "../src/ERC20RefundableTokenSaleFactory.sol";
 
 /// @notice Deploys the ERC20RefundableTokenSaleFactory contract
-/// @dev Run with: forge script script/DeployFactory.s.sol:DeployFactory --rpc-url <RPC_URL> --broadcast --verify
+/// @dev Deploy TokenLiquidity first, then link it when running this script:
+/// @dev forge script script/DeployFactory.s.sol:DeployFactory --rpc-url <RPC_URL> --broadcast --verify \
+/// @dev   --libraries src/libraries/TokenLiquidity.sol:TokenLiquidity:<TOKEN_LIQUIDITY_LIB>
 contract DeployFactory is Script {
 
     // Base Sepolia
@@ -28,8 +30,13 @@ contract DeployFactory is Script {
         address positionManager = sepoliaPositionManager;
         address permit2 = sepoliaPermit2;
 
-        // Deploy the factory
-        factory = new ERC20RefundableTokenSaleFactory(poolManager, positionManager, permit2);
+        // Deploy the factory (will revert if TokenLiquidity is not linked)
+        bytes memory args = abi.encode(poolManager, positionManager, permit2);
+        address factoryAddress = vm.deployCode(
+            "ERC20RefundableTokenSaleFactory.sol:ERC20RefundableTokenSaleFactory",
+            args
+        );
+        factory = ERC20RefundableTokenSaleFactory(factoryAddress);
 
         vm.stopBroadcast();
 

@@ -7,7 +7,7 @@ import {ERC20RefundableTokenSale} from "../src/ERC20RefundableTokenSale.sol";
 import {IERC20RefundableTokenSale} from "../src/interfaces/IERC20RefundableTokenSale.sol";
 
 /// @notice Deploys a new token sale through the factory and creates a sale
-/// @dev Run with: forge script script/DeployTokenSale.s.sol:DeployTokenSale --rpc-url <RPC_URL> --broadcast
+/// @dev Run with: forge script script/CreateToken.s.sol:CreateToken --rpc-url <RPC_URL> --broadcast
 /// @dev Required env vars: DEPLOYER_PRIVATE_KEY
 contract DeployTokenSale is Script {
     function _createSale(ERC20RefundableTokenSale token) internal {
@@ -40,15 +40,15 @@ contract DeployTokenSale is Script {
         address deployer = vm.addr(deployerPrivateKey);
 
         // Get factory address from environment
-        address factoryAddress = 0xF0d3Cc6ea346d35b4830f99Efeda99925AA8a056;
+        address factoryAddress = 0xE22e0ECeD45D869DE221106a743c672F502b4dF3;
         ERC20RefundableTokenSaleFactory factory = ERC20RefundableTokenSaleFactory(factoryAddress);
 
         // Get required parameters
         address fundingToken = 0x036CbD53842c5426634e7929541eC2318f3dCF7e; // USDC on Base Sepolia
         address beneficiary = 0x6837047F46Da1d5d9A79846b25810b92adF456F6; // 1a35e1.eth
 
-        string memory tokenName = "Clawbackable Labs";
-        string memory tokenSymbol = "CLBK";
+        string memory tokenName = "Regrettable Labs";
+        string memory tokenSymbol = "RGTBL";
         uint256 maxSupply = 10_000_000 ether;
 
         // Deploy token through factory
