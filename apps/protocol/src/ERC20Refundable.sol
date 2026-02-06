@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IERC20Refundable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
+import {console} from "forge-std/console.sol";
 
 /// @notice ERC20 token with refundable purchase rights that decay over time
 contract ERC20Refundable is ERC20, IERC20Refundable {
@@ -16,8 +17,6 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
 
     /// @notice The ERC20 token used for purchasing this token
     address public immutable FUNDING_TOKEN;
-
-    uint256 public immutable FUNDING_TOKEN_DECIMALS;
 
     /// @notice Address authorized to claim funds from token sales
     address public immutable BENEFICIARY;
@@ -75,7 +74,6 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
         ERC20(name, symbol)
     {
         FUNDING_TOKEN = fundingToken;
-        FUNDING_TOKEN_DECIMALS = IERC20Metadata(fundingToken).decimals();
         BENEFICIARY = beneficiary;
 
         // Mint the max supply to this contract
@@ -111,6 +109,9 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
         uint256 periods = refundableDecayEndBlock - asOfBlockHeight;
         uint256 elapsed = _blocksSince(asOfBlockHeight);
 
+        if (periods == 0) {
+            return 0;
+        }
         return originalAmount / periods * (periods - elapsed);
     }
 
@@ -159,7 +160,7 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
             refundedTokenAmount = tokenAmount;
         }
 
-        fundingTokenAmount = refundedTokenAmount * tokenSalePurchasePrice / (10 ** FUNDING_TOKEN_DECIMALS);
+        fundingTokenAmount = refundedTokenAmount * tokenSalePurchasePrice / 1e18;
         // Update user's remaining refundable balance
         _refundableBalances[msg.sender].originalAmount =
             _refundableBalances[msg.sender].originalAmount - refundedTokenAmount;
@@ -192,13 +193,19 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
     }
 
     function _claimableFunds() internal view returns (uint256) {
+        if (tokenSalePurchasePrice == 0) {
+            return 0;
+        }
+
         // Find how many tokens are currently refundable
         uint256 currentlyRefundableTokens = _currentlyRefundable(_totalRefundableTokens, _totalRefundableBlockHeight);
-
+console.log("currentlyRefundableTokens", currentlyRefundableTokens);
         // Find out how much money we would need to refund them all
-        uint256 lockedFunding = currentlyRefundableTokens * tokenSalePurchasePrice / (10 ** FUNDING_TOKEN_DECIMALS);
+        uint256 lockedFunding = currentlyRefundableTokens * tokenSalePurchasePrice / 1e18;
+console.log("lockedFunding", lockedFunding);
 
         // The agent can claim whatever is not locked for refunds
+        console.log("fundingTokensHeld", fundingTokensHeld);
         return fundingTokensHeld - lockedFunding;
     }
 
