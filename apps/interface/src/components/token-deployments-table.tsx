@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { baseSepolia } from "viem/chains";
+import { formatUnits } from "viem";
 import { useWeb3 } from "@/providers/web3";
 import { CreateSaleDrawer } from "@/components/drawers/create-sale-drawer";
 import { BuyTokensDrawer } from "@/components/drawers/buy-tokens-drawer";
 import { CreateTokenDialog } from "@/components/dialogs/create-token-dialog";
-import { formatUnits } from "viem";
+import { RefundTokensDialog } from "@/components/dialogs/refund-tokens-dialog";
 import { resolveAvatar } from "@/lib/utils";
 import { NetworkBase } from "@web3icons/react";
 import { ERC20RefundableTokenSaleABI } from "@repo/abis";
@@ -46,6 +47,12 @@ type OnchainBalanceRow = {
   refundableBalance: string;
 };
 
+type RefundTarget = {
+  tokenAddress: `0x${string}`;
+  tokenSymbol: string;
+  refundableAmount: bigint;
+};
+
 const shortAddress = (value: string) => {
   if (!value) return "";
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
@@ -63,6 +70,16 @@ const formatMaxSupply = (value: string) => {
 const formatBalanceCell = (value: string, symbol: string) => {
   if (!value) return "—";
   return `${formatMaxSupply(value)} ${symbol}`;
+};
+
+const parsePositiveBalance = (value: string | undefined): bigint => {
+  if (!value) return 0n;
+  try {
+    const parsed = BigInt(value);
+    return parsed > 0n ? parsed : 0n;
+  } catch {
+    return 0n;
+  }
 };
 
 const getSaleStatus = (
@@ -171,7 +188,6 @@ const fetchOnchainBalances = async (
           }),
         ]);
 
-
         return [
           deployment.token.toLowerCase(),
           {
@@ -206,6 +222,8 @@ export function TokenDeploymentsTable() {
   const [latestBlockNumber, setLatestBlockNumber] = useState<bigint | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<RefundTarget | null>(null);
 
   useEffect(() => {
     const loadAddress = async () => {
@@ -296,6 +314,8 @@ export function TokenDeploymentsTable() {
                 currentAddress?.toLowerCase() === deployment.deployer.toLowerCase();
               const saleStatus = getSaleStatus(deployment, latestBlockNumber);
               const balances = onchainBalances[deployment.token.toLowerCase()];
+              const refundableBalance = parsePositiveBalance(balances?.refundableBalance);
+              const showRefundAction = refundableBalance > 0n;
 
               return (
                 <tr key={deployment.id} className="border-t border-gray-100">
@@ -315,7 +335,7 @@ export function TokenDeploymentsTable() {
                         </span>
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">{deployment.name}{' '}<span className="text-xs font-mono text-gray-500">{deployment.symbol}</span></div>
+                        <div className="font-medium text-gray-900">{deployment.name}{" "}<span className="text-xs font-mono text-gray-500">{deployment.symbol}</span></div>
                         <a
                           className="mt-1 inline-flex text-xs font-mono text-gray-400 hover:text-gray-600"
                           href={`${explorerBaseUrl}/address/${deployment.token}`}
@@ -362,24 +382,45 @@ export function TokenDeploymentsTable() {
                     {saleStatus === "none" && "—"}
                   </td>
                   <td className="px-5 py-5 text-gray-700">
-                    {saleStatus === "active" ? (
-                      <BuyTokensDrawer
-                        triggerLabel="Buy Tokens"
-                        triggerClassName="h-10 rounded-full px-5 text-xs font-semibold"
-                        tokenAddress={deployment.token as `0x${string}`}
-                        tokenSymbol={deployment.symbol}
-                        sale={deployment.sales.items[0] ?? null}
-                      />
-                    ) : isDeployer ? (
-                      <CreateSaleDrawer
-                        triggerLabel="Create Sale"
-                        triggerClassName="h-10 rounded-full px-5 text-xs font-semibold"
-                        tokenAddress={deployment.token as `0x${string}`}
-                        tokenSymbol={deployment.symbol}
-                      />
-                    ) : (
-                      <span className="text-xs text-gray-400">Deployer only</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {saleStatus === "active" ? (
+                        <BuyTokensDrawer
+                          triggerLabel="Buy Tokens"
+                          triggerClassName="h-10 rounded-full px-5 text-xs font-semibold"
+                          tokenAddress={deployment.token as `0x${string}`}
+                          tokenSymbol={deployment.symbol}
+                          sale={deployment.sales.items[0] ?? null}
+                        />
+                      ) : isDeployer ? (
+                        <CreateSaleDrawer
+                          triggerLabel="Create Sale"
+                          triggerClassName="h-10 rounded-full px-5 text-xs font-semibold"
+                          tokenAddress={deployment.token as `0x${string}`}
+                          tokenSymbol={deployment.symbol}
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-400">Deployer only</span>
+                      )}
+
+                      {showRefundAction && (
+                        <button
+                          type="button"
+                          aria-label="Refund tokens"
+                          title="Refund refundable tokens"
+                          onClick={() => {
+                            setRefundTarget({
+                              tokenAddress: deployment.token as `0x${string}`,
+                              tokenSymbol: deployment.symbol,
+                              refundableAmount: refundableBalance,
+                            });
+                            setRefundDialogOpen(true);
+                          }}
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-lg hover:bg-gray-50"
+                        >
+                          🦞
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -387,6 +428,21 @@ export function TokenDeploymentsTable() {
           </tbody>
         </table>
       </div>
+
+      <RefundTokensDialog
+        open={refundDialogOpen}
+        onOpenChange={(open) => {
+          setRefundDialogOpen(open);
+          if (!open) {
+            setRefundTarget(null);
+          }
+        }}
+        tokenAddress={refundTarget?.tokenAddress ?? null}
+        tokenSymbol={refundTarget?.tokenSymbol ?? "Token"}
+        refundableAmount={refundTarget?.refundableAmount ?? 0n}
+        currentAddress={currentAddress as `0x${string}` | null}
+        onRefunded={load}
+      />
     </section>
   );
 }
