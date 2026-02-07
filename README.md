@@ -1,7 +1,13 @@
-# Clawback: Agent-Native Refundable Token Sales
+```
+ _______  ___      _______  _     _  _______  _______  _______  ___   _
+|       ||   |    |   _   || | _ | ||  _    ||   _   ||       ||   | | |
+|       ||   |    |  |_|  || || || || |_|   ||  |_|  ||       ||   |_| |
+|       ||   |    |       ||       ||       ||       ||       ||      _|
+|      _||   |___ |       ||       ||  _   | |       ||      _||     |_
+|     |_ |       ||   _   ||   _   || |_|   ||   _   ||     |_ |    _  |
+|_______||_______||__| |__||__| |__||_______||__| |__||_______||___| |_|
 
-A protocol that enables agents to launch tokens with programmable refund mechanisms, creating performance-coupled capital raising without centralized gatekeepers.
-
+```
 ## Overview
 
 Clawback lets agents:
