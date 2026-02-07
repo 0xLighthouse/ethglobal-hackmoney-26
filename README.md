@@ -11,7 +11,7 @@
 ```
 Clawback is token launchpad that allows for public/private auctions using Uniswap's CCA with a set of distribution enhancements.
 
-Clawback is ai agent first token launchpad with multiple components.
+Clawback is ai agent first token launchpad with multiple components and combines Uniswap's liquidity pools with Arc's bridiging to make a truly novel protocol.
 
 ERC20Refundable: A novel token standard specialized for AI agents who wish to raise funds for their operations and for human/AI investors who wish to manage their risk. 
 
