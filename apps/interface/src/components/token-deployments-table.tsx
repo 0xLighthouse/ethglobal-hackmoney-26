@@ -9,6 +9,7 @@ import { CreateTokenDialog } from "@/components/dialogs/create-token-dialog";
 import { formatUnits } from "viem";
 import { resolveAvatar } from "@/lib/utils";
 import { NetworkBase } from "@web3icons/react";
+import { ERC20RefundableTokenSaleABI } from "@repo/abis";
 
 const DEFAULT_INDEXER_URL = "http://localhost:42069";
 const explorerBaseUrl =
@@ -40,6 +41,10 @@ type Sale = {
 };
 
 type SaleStatus = "active" | "ended" | "none";
+type OnchainBalanceRow = {
+  balance: string;
+  refundableBalance: string;
+};
 
 const shortAddress = (value: string) => {
   if (!value) return "";
@@ -53,6 +58,11 @@ const formatMaxSupply = (value: string) => {
   } catch {
     return "—";
   }
+};
+
+const formatBalanceCell = (value: string, symbol: string) => {
+  if (!value) return "—";
+  return `${formatMaxSupply(value)} ${symbol}`;
 };
 
 const getSaleStatus = (
@@ -136,6 +146,54 @@ const fetchDeployments = async (
   return { deployments: withSales };
 };
 
+const fetchOnchainBalances = async (
+  deployments: Deployment[],
+  account: string | null,
+  readContract: ReturnType<typeof useWeb3>["publicClient"]["readContract"]
+): Promise<Record<string, OnchainBalanceRow>> => {
+  if (!account) return {};
+
+  const rows = await Promise.all(
+    deployments.map(async (deployment) => {
+      try {
+        const [balance, refundableBalance] = await Promise.all([
+          readContract({
+            address: deployment.token as `0x${string}`,
+            abi: ERC20RefundableTokenSaleABI,
+            functionName: "balanceOf",
+            args: [account as `0x${string}`],
+          }),
+          readContract({
+            address: deployment.token as `0x${string}`,
+            abi: ERC20RefundableTokenSaleABI,
+            functionName: "refundableBalanceOf",
+            args: [account as `0x${string}`],
+          }),
+        ]);
+
+
+        return [
+          deployment.token.toLowerCase(),
+          {
+            balance: balance.toString(),
+            refundableBalance: refundableBalance.toString(),
+          },
+        ] as const;
+      } catch {
+        return [
+          deployment.token.toLowerCase(),
+          {
+            balance: "",
+            refundableBalance: "",
+          },
+        ] as const;
+      }
+    })
+  );
+
+  return Object.fromEntries(rows);
+};
+
 export function TokenDeploymentsTable() {
   const indexerUrl = useMemo(
     () => process.env.NEXT_PUBLIC_INDEXER_URL ?? DEFAULT_INDEXER_URL,
@@ -144,6 +202,7 @@ export function TokenDeploymentsTable() {
   const { walletClient, publicClient, isInitialized } = useWeb3();
   const [currentAddress, setCurrentAddress] = useState<string | null>(null);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [onchainBalances, setOnchainBalances] = useState<Record<string, OnchainBalanceRow>>({});
   const [latestBlockNumber, setLatestBlockNumber] = useState<bigint | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -167,8 +226,12 @@ export function TokenDeploymentsTable() {
     try {
       const result = await fetchDeployments(indexerUrl);
       setDeployments(result.deployments);
-      const blockNumber = await publicClient.getBlockNumber();
+      const [blockNumber, balances] = await Promise.all([
+        publicClient.getBlockNumber(),
+        fetchOnchainBalances(result.deployments, currentAddress, publicClient.readContract),
+      ]);
       setLatestBlockNumber(blockNumber);
+      setOnchainBalances(balances);
       setStatus("idle");
     } catch (err) {
       setStatus("error");
@@ -183,7 +246,7 @@ export function TokenDeploymentsTable() {
     }, 30_000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [currentAddress]);
 
   return (
     <section>
@@ -214,6 +277,8 @@ export function TokenDeploymentsTable() {
               <th className="px-5 py-4">Token</th>
               <th className="px-5 py-4">Max Supply</th>
               <th className="px-5 py-4">Beneficiary</th>
+              <th className="px-5 py-4">Balance</th>
+              <th className="px-5 py-4">Refundable Balance</th>
               <th className="px-5 py-4">Status</th>
               <th className="px-5 py-4">Actions</th>
             </tr>
@@ -221,7 +286,7 @@ export function TokenDeploymentsTable() {
           <tbody>
             {deployments.length === 0 && status !== "error" && (
               <tr>
-                <td className="px-5 py-8 text-gray-500" colSpan={5}>
+                <td className="px-5 py-8 text-gray-500" colSpan={7}>
                   {status === "loading" ? "Loading deployments..." : "No deployments yet."}
                 </td>
               </tr>
@@ -230,6 +295,7 @@ export function TokenDeploymentsTable() {
               const isDeployer =
                 currentAddress?.toLowerCase() === deployment.deployer.toLowerCase();
               const saleStatus = getSaleStatus(deployment, latestBlockNumber);
+              const balances = onchainBalances[deployment.token.toLowerCase()];
 
               return (
                 <tr key={deployment.id} className="border-t border-gray-100">
@@ -275,6 +341,12 @@ export function TokenDeploymentsTable() {
                     >
                       {shortAddress(deployment.beneficiary)}
                     </a>
+                  </td>
+                  <td className="px-5 py-5 text-gray-700">
+                    {formatBalanceCell(balances?.balance ?? "", deployment.symbol)}
+                  </td>
+                  <td className="px-5 py-5 text-gray-700">
+                    {formatBalanceCell(balances?.refundableBalance ?? "", deployment.symbol)}
                   </td>
                   <td className="px-5 py-5 text-gray-500">
                     {saleStatus === "active" && (

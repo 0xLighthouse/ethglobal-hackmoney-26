@@ -1,6 +1,8 @@
 import { baseSepolia, sepolia, optimismSepolia, arbitrumSepolia } from "viem/chains";
 
 
+export const APP_NAME = "Clawback";
+
 export const BASE_SEPOLIA_FACTORY_ADDRESS =
   (process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}` | undefined) ??
   "0xE22e0ECeD45D869DE221106a743c672F502b4dF3";

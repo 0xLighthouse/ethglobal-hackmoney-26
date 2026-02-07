@@ -12,9 +12,9 @@ import {IERC20RefundableTokenSale} from "../src/interfaces/IERC20RefundableToken
 contract DeployTokenSale is Script {
     function _createSale(ERC20RefundableTokenSale token) internal {
         uint256 saleAmount = 100_000 ether;
-        uint256 purchasePrice = 1e5; // 0.1 USDC
+        uint256 purchasePrice = 1e4; // 0.01 USDC
         uint256 startBlock = block.number;
-        uint256 endBlock = block.number + 100_000;
+        uint256 endBlock = block.number + 100_000; //
         uint64 bpsStart = 8000; // 80%
         uint64 decayDelay = 50; // 50 blocks (10 minutes)
         uint64 decayDuration = 100; // 100 blocks (2 days)
