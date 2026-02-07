@@ -13,6 +13,8 @@ import {Currency} from "v4-core/types/Currency.sol";
 import {PoolId, PoolIdLibrary} from "v4-core/types/PoolId.sol";
 import {IHooks} from "v4-core/interfaces/IHooks.sol";
 
+import {console} from "forge-std/console.sol";
+
 contract ERC20RefundableTokenSaleTest is Test {
     ERC20RefundableTokenSaleFactory public factory;
     ERC20RefundableTokenSale public token;
@@ -27,10 +29,11 @@ contract ERC20RefundableTokenSaleTest is Test {
     address public carol;
 
     uint256 public constant MAX_SUPPLY = 1_000_000 ether;
+    uint256 public constant SALE_DURATION = 100_000;
     uint256 public constant PURCHASE_PRICE = 1e5; // 0.1 USDC
     uint64 public constant REFUNDABLE_BPS_START = 8000; // 80%
-    uint64 public constant REFUNDABLE_DECAY_BLOCK_DELAY = 100;
-    uint64 public constant REFUNDABLE_DECAY_BLOCK_DURATION = 200;
+    uint64 public constant REFUNDABLE_DECAY_BLOCK_DELAY = 50;
+    uint64 public constant REFUNDABLE_DECAY_BLOCK_DURATION = 100;
 
     // Base Sepolia
     address public sepoliaPermit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
@@ -70,19 +73,20 @@ contract ERC20RefundableTokenSaleTest is Test {
 
         // Create a sale
         uint256 saleStartBlock = block.number;
-        uint256 saleEndBlock = block.number + 1000;
-        uint256 saleAmount = 10000 ether;
+        uint256 saleEndBlock = block.number + SALE_DURATION;
+        uint256 saleAmount = 100_000 ether;
 
         vm.prank(owner);
+
         token.createSale(
             IERC20RefundableTokenSale.SaleParams({
                 saleAmount: saleAmount,
                 purchasePrice: PURCHASE_PRICE,
                 saleStartBlock: uint64(saleStartBlock),
                 saleEndBlock: uint64(saleEndBlock),
-                refundableDecayStartBlock: uint64(saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY),
+                refundableDecayStartBlock: uint64(saleEndBlock + REFUNDABLE_DECAY_BLOCK_DELAY),
                 refundableDecayEndBlock: uint64(
-                    saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION
+                    saleEndBlock + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION
                 ),
                 refundableBpsAtStart: REFUNDABLE_BPS_START,
                 additionalTokensReservedForLiquidityBps: 0
@@ -143,7 +147,7 @@ contract ERC20RefundableTokenSaleTest is Test {
     function test_SaleConfiguration() public view {
         assertEq(token.tokenSalePurchasePrice(), PURCHASE_PRICE);
         assertGt(token.tokenSaleEndBlock(), block.number);
-        assertEq(token.remainingTokensForSale(), 10000 ether);
+        assertEq(token.remainingTokensForSale(), 100_000 ether);
     }
 
     // ---------------------------------------------------------------
@@ -213,6 +217,7 @@ contract ERC20RefundableTokenSaleTest is Test {
     // ---------------------------------------------------------------
 
     function test_RefundableBalanceDecaysOverTime() public {
+
         uint256 tokenAmount = 100 ether;
         uint256 fundingAmount = _fundingAmount(tokenAmount);
 
@@ -223,9 +228,8 @@ contract ERC20RefundableTokenSaleTest is Test {
 
         uint256 expectedRefundable = (tokenAmount * REFUNDABLE_BPS_START) / 10000;
         assertEq(token.refundableBalanceOf(alice), expectedRefundable);
-
         // Fast forward before decay starts
-        vm.roll(block.number + REFUNDABLE_DECAY_BLOCK_DELAY - 1);
+        vm.roll(block.number + SALE_DURATION + REFUNDABLE_DECAY_BLOCK_DELAY - 1);
         assertEq(token.refundableBalanceOf(alice), expectedRefundable);
 
         // Fast forward to middle of decay
@@ -272,6 +276,7 @@ contract ERC20RefundableTokenSaleTest is Test {
         token.purchase(tokenAmount, fundingAmount);
 
         uint256 refundableBalance = token.refundableBalanceOf(alice);
+        assertGt(refundableBalance, 0);
         uint256 aliceFundingBefore = fundingToken.balanceOf(alice);
         uint256 aliceTokenBefore = token.balanceOf(alice);
         uint256 expectedFunding = _fundingAmount(refundableBalance);

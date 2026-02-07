@@ -64,7 +64,8 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
         }
         // Sale start and end time must be valid and we can't commit more than 100% of the tokens being sold
         if (
-            params.saleStartBlock > params.saleEndBlock
+            params.saleStartBlock > params.saleEndBlock || params.saleEndBlock > params.refundableDecayStartBlock
+                || params.refundableDecayStartBlock > params.refundableDecayEndBlock
                 || params.refundableBpsAtStart + params.additionalTokensReservedForLiquidityBps > 100_00
                 || (poolManager == IPoolManager(address(0)) && params.additionalTokensReservedForLiquidityBps > 0)
         ) {
@@ -172,5 +173,4 @@ contract ERC20RefundableTokenSale is Ownable(msg.sender), ERC20Refundable, IERC2
 
         return amount;
     }
-
 }
