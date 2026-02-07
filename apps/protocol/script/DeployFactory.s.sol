@@ -9,7 +9,6 @@ import {ERC20RefundableTokenSaleFactory} from "../src/ERC20RefundableTokenSaleFa
 /// @dev forge script script/DeployFactory.s.sol:DeployFactory --rpc-url <RPC_URL> --broadcast --verify \
 /// @dev   --libraries src/libraries/TokenLiquidity.sol:TokenLiquidity:<TOKEN_LIQUIDITY_LIB>
 contract DeployFactory is Script {
-
     // Base Sepolia
     address public sepoliaPoolManager = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
     address public sepoliaPositionManager = 0x4B2C77d209D3405F41a037Ec6c77F7F5b8e2ca80;
@@ -32,10 +31,8 @@ contract DeployFactory is Script {
 
         // Deploy the factory (will revert if TokenLiquidity is not linked)
         bytes memory args = abi.encode(poolManager, positionManager, permit2);
-        address factoryAddress = vm.deployCode(
-            "ERC20RefundableTokenSaleFactory.sol:ERC20RefundableTokenSaleFactory",
-            args
-        );
+        address factoryAddress =
+            vm.deployCode("ERC20RefundableTokenSaleFactory.sol:ERC20RefundableTokenSaleFactory", args);
         factory = ERC20RefundableTokenSaleFactory(factoryAddress);
 
         vm.stopBroadcast();

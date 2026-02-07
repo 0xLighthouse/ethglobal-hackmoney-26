@@ -87,7 +87,9 @@ library TokenLiquidity {
     function _approve(IAllowanceTransfer permit2, Currency currency, IPositionManager positionManager, uint256 amount)
         private
     {
-        permit2.approve(Currency.unwrap(currency), address(positionManager), uint160(amount), uint48(block.timestamp + 3600));
+        permit2.approve(
+            Currency.unwrap(currency), address(positionManager), uint160(amount), uint48(block.timestamp + 3600)
+        );
     }
 
     function increaseLiquidity(
