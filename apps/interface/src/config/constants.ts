@@ -1,9 +1,11 @@
 import { baseSepolia, sepolia, optimismSepolia, arbitrumSepolia } from "viem/chains";
 
 
+export const APP_NAME = "Clawback";
+
 export const BASE_SEPOLIA_FACTORY_ADDRESS =
   (process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}` | undefined) ??
-  "0xAA4c01f7B2627a227B257378C73BC52Abf74e71e";
+  "0x8eaC0edA707413AA315eD912cAB9e667707165B1";
 
 
 // TODO: For now just use USDC on Base Sepolia

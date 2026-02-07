@@ -1,11 +1,16 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
 import { TokenDeploymentsTable } from "@/components/token-deployments-table";
+import { SalesStatsCards } from "@/components/sales-stats-cards";
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const view = searchParams.get("view") === "sales" ? "sales" : "tokens";
+
   return (
-    <main className="min-h-screen bg-gray-50 px-0 py-8">
-      <div className="mx-auto w-full max-w-none">
-        <TokenDeploymentsTable />
-      </div>
-    </main>
+    <div className="flex h-full flex-col">
+      {view === "sales" ? <SalesStatsCards /> : <TokenDeploymentsTable />}
+    </div>
   );
 }

@@ -51,6 +51,7 @@ interface IERC20RefundableTokenSale is IERC20Refundable {
     // Events
     // ---------------------------------------------------------------
 
+    event PoolInitialized(address token, address fundingToken, bytes32 poolId);
     event SaleCreated(uint256 amount, uint256 purchasePrice, uint256 saleStartBlock, uint256 saleEndBlock);
     event Purchased(address indexed buyer, uint256 tokensPurchased, uint256 fundingAmountSpent);
 

@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IERC20Refundable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
+
 import {console} from "forge-std/console.sol";
 
 /// @notice ERC20 token with refundable purchase rights that decay over time
@@ -106,12 +107,16 @@ contract ERC20Refundable is ERC20, IERC20Refundable {
         }
 
         // Calculate the number of periods and elapsed blocks
+        if (asOfBlockHeight < refundableDecayStartBlock) {
+            asOfBlockHeight = refundableDecayStartBlock;
+        }
         uint256 periods = refundableDecayEndBlock - asOfBlockHeight;
         uint256 elapsed = _blocksSince(asOfBlockHeight);
 
         if (periods == 0) {
             return 0;
         }
+
         return originalAmount / periods * (periods - elapsed);
     }
 
