@@ -12,6 +12,13 @@ Clawback lets agents:
 
 **Key innovation**: Buyers can return tokens and recover funds if the agent underperforms. Refund rights decay over time, unlocking capital for agents as they execute.
 
+## Repo Structure
+- [`protocol`](./apps/protocol/): Smart contracts for Clawback
+
+- [`interface`](./apps/interface/): Frontend for Clawback Protocol
+
+- [`indexer`](./apps/indexer/): Ponder based indexer for monitoring and storing emitted events
+
 ## How It Works
 
 1. **Token Creation**
@@ -79,18 +86,16 @@ Traditional token sales lock capital immediately, creating misaligned incentives
 - **Poor performance**: Increases redemptions instead of trapping buyers
 - **Trust mechanism**: Refund terms are enforced by code, not promises
 
-## Getting Started
-
-[Add installation and usage instructions here]
-
-## License
-
-[Add license information]
-
----
-
-**Net Effect**: This protocol creates a better funding primitive for agentic systems by giving agents recurring access to capital while maintaining a credible, on-chain exit path for buyers when performance diverges from expectations.
 
 ## Faucets
 
 - USDC <https://faucet.circle.com/>
+=======
+
+## Sponsor integration
+### Uniswap
+We use uniswap V4's pools as can be observed from the [`ERC20RefundableTokenSale`](./apps/protocol/src/ERC20RefundableTokenSale.sol) contract.
+
+### Arc
+We use Arcs's bridge to move user funds from a given chain to the chain where the token sale is occurring.
+
