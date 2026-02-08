@@ -14,7 +14,7 @@ contract BuyTokens is Script {
         // Get deployer from private key
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
 
-        address tokenAddress = 0xc4385a64760f2AeAF03D33f69c65a08c7E1C6bf2;
+        address tokenAddress = 0x69562d235a4054Ab41834A5e4DFDD8Cc64B19382;
         ERC20RefundableTokenSale token = ERC20RefundableTokenSale(tokenAddress);
 
         address fundingTokenAddress = token.FUNDING_TOKEN();

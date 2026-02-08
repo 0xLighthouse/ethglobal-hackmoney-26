@@ -5,7 +5,7 @@ export const APP_NAME = "Clawback";
 
 export const BASE_SEPOLIA_FACTORY_ADDRESS =
   (process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}` | undefined) ??
-  "0x8eaC0edA707413AA315eD912cAB9e667707165B1";
+  "0x9f01070aaA979C3aF072C654109A4BC73300428C";
 
 
 // TODO: For now just use USDC on Base Sepolia

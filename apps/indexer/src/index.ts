@@ -57,3 +57,14 @@ ponder.on("ERC20RefundableTokenSale:Refunded", async ({ event, context }) => {
     txHash: event.transaction.hash
   });
 });
+
+ponder.on("ERC20RefundableTokenSale:PoolInitialized", async ({ event, context }) => {
+  await context.db.insert(schema.poolInitialization).values({
+    id: event.id,
+    token: event.args.token,
+    fundingToken: event.args.fundingToken,
+    poolId: event.args.poolId,
+    blockNumber: event.block.number,
+    txHash: event.transaction.hash
+  });
+});

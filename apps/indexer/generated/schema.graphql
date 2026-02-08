@@ -28,6 +28,8 @@ type Query {
   tokenSales(where: tokenSaleFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): tokenSalePage!
   tokenSaleActivity(id: String!): tokenSaleActivity
   tokenSaleActivitys(where: tokenSaleActivityFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): tokenSaleActivityPage!
+  poolInitialization(id: String!): poolInitialization
+  poolInitializations(where: poolInitializationFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): poolInitializationPage!
   _meta: Meta
 }
 
@@ -297,6 +299,84 @@ input tokenSaleActivityFilter {
   fundingAmount_lt: BigInt
   fundingAmount_gte: BigInt
   fundingAmount_lte: BigInt
+  blockNumber: BigInt
+  blockNumber_not: BigInt
+  blockNumber_in: [BigInt]
+  blockNumber_not_in: [BigInt]
+  blockNumber_gt: BigInt
+  blockNumber_lt: BigInt
+  blockNumber_gte: BigInt
+  blockNumber_lte: BigInt
+  txHash: String
+  txHash_not: String
+  txHash_in: [String]
+  txHash_not_in: [String]
+  txHash_contains: String
+  txHash_not_contains: String
+  txHash_starts_with: String
+  txHash_ends_with: String
+  txHash_not_starts_with: String
+  txHash_not_ends_with: String
+}
+
+type poolInitialization {
+  id: String!
+  token: String!
+  fundingToken: String!
+  poolId: String!
+  blockNumber: BigInt!
+  txHash: String!
+}
+
+type poolInitializationPage {
+  items: [poolInitialization!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input poolInitializationFilter {
+  AND: [poolInitializationFilter]
+  OR: [poolInitializationFilter]
+  id: String
+  id_not: String
+  id_in: [String]
+  id_not_in: [String]
+  id_contains: String
+  id_not_contains: String
+  id_starts_with: String
+  id_ends_with: String
+  id_not_starts_with: String
+  id_not_ends_with: String
+  token: String
+  token_not: String
+  token_in: [String]
+  token_not_in: [String]
+  token_contains: String
+  token_not_contains: String
+  token_starts_with: String
+  token_ends_with: String
+  token_not_starts_with: String
+  token_not_ends_with: String
+  fundingToken: String
+  fundingToken_not: String
+  fundingToken_in: [String]
+  fundingToken_not_in: [String]
+  fundingToken_contains: String
+  fundingToken_not_contains: String
+  fundingToken_starts_with: String
+  fundingToken_ends_with: String
+  fundingToken_not_starts_with: String
+  fundingToken_not_ends_with: String
+  poolId: String
+  poolId_not: String
+  poolId_in: [String]
+  poolId_not_in: [String]
+  poolId_contains: String
+  poolId_not_contains: String
+  poolId_starts_with: String
+  poolId_ends_with: String
+  poolId_not_starts_with: String
+  poolId_not_ends_with: String
   blockNumber: BigInt
   blockNumber_not: BigInt
   blockNumber_in: [BigInt]

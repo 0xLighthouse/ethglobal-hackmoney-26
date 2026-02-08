@@ -4,24 +4,12 @@
 
 export const erc20RefundableTokenSaleFactoryAbi = [
   {
-    type: 'function',
+    type: 'constructor',
     inputs: [
-      {
-        name: 'params',
-        internalType:
-          'struct IERC20RefundableTokenSaleFactory.DeployRefundableTokenParams',
-        type: 'tuple',
-        components: [
-          { name: 'name', internalType: 'string', type: 'string' },
-          { name: 'symbol', internalType: 'string', type: 'string' },
-          { name: 'maxSupply', internalType: 'uint256', type: 'uint256' },
-          { name: 'beneficiary', internalType: 'address', type: 'address' },
-          { name: 'fundingToken', internalType: 'address', type: 'address' },
-        ],
-      },
+      { name: 'poolManager_', internalType: 'address', type: 'address' },
+      { name: 'positionManager_', internalType: 'address', type: 'address' },
+      { name: 'permit2_', internalType: 'address', type: 'address' },
     ],
-    name: 'deployRefundableToken',
-    outputs: [{ name: 'token', internalType: 'address', type: 'address' }],
     stateMutability: 'nonpayable',
   },
   {
@@ -63,6 +51,27 @@ export const erc20RefundableTokenSaleFactoryAbi = [
     inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
     name: 'isDeployedToken',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'permit2',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'poolManager',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'positionManager',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {

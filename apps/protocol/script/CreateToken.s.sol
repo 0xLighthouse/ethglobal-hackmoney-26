@@ -13,7 +13,7 @@ import {BlockTime} from "../src/libraries/BlockTime.sol";
 /// @dev Required env vars: DEPLOYER_PRIVATE_KEY
 contract CreateToken is Script {
 
-    address constant LATEST_FACTORY_ADDRESS = 0x8eaC0edA707413AA315eD912cAB9e667707165B1;
+    address constant LATEST_FACTORY_ADDRESS = 0x9f01070aaA979C3aF072C654109A4BC73300428C;
 
     function _createSale(ERC20RefundableTokenSale token) internal {
         uint256 saleAmount = 100_000 ether;
@@ -24,7 +24,7 @@ contract CreateToken is Script {
         uint256 refundableDecayStartBlock = endBlock + BlockTime.hoursToBlocks(2, secondsPerBlock);
         uint256 refundableDecayEndBlock = refundableDecayStartBlock + BlockTime.weeksToBlocks(1, secondsPerBlock);
         uint64 bpsStart = 8000; // 80%
-        uint64 additionalTokensReservedForLiquidityBps = 0;
+        uint64 additionalTokensReservedForLiquidityBps = 0; // TODO: Add this back in
 
         token.createSale(
             IERC20RefundableTokenSale.SaleParams({
