@@ -1,3 +1,18 @@
-[submodule "apps/protocol/lib/openzeppelin-contracts-upgradeable"]
-	path = apps/protocol/lib/openzeppelin-contracts-upgradeable
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable.git
+[submodule "apps/protocol/lib/solmate"]
+	path = apps/protocol/lib/solmate
+	url = https://github.com/transmissions11/solmate
+[submodule "apps/protocol/lib/openzeppelin-contracts"]
+	path = apps/protocol/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "apps/protocol/lib/solady"]
+	path = apps/protocol/lib/solady
+	url = https://github.com/vectorized/solady
+[submodule "apps/protocol/lib/v4-core"]
+	path = apps/protocol/lib/v4-core
+	url = https://github.com/Uniswap/v4-core
+[submodule "apps/protocol/lib/v4-periphery"]
+	path = apps/protocol/lib/v4-periphery
+	url = https://github.com/Uniswap/v4-periphery
+[submodule "apps/protocol/lib/uniswap-hooks"]
+	path = apps/protocol/lib/uniswap-hooks
+	url = https://github.com/OpenZeppelin/uniswap-hooks

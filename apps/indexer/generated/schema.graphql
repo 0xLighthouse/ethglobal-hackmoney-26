@@ -1,0 +1,398 @@
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+scalar BigInt
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type ViewPageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+type Meta {
+  status: JSON
+}
+
+type Query {
+  token(id: String!): token
+  tokens(where: tokenFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): tokenPage!
+  tokenSale(id: String!): tokenSale
+  tokenSales(where: tokenSaleFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): tokenSalePage!
+  tokenSaleActivity(id: String!): tokenSaleActivity
+  tokenSaleActivitys(where: tokenSaleActivityFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): tokenSaleActivityPage!
+  poolInitialization(id: String!): poolInitialization
+  poolInitializations(where: poolInitializationFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): poolInitializationPage!
+  _meta: Meta
+}
+
+type token {
+  id: String!
+  token: String!
+  deployer: String!
+  beneficiary: String!
+  name: String!
+  symbol: String!
+  maxSupply: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+}
+
+type tokenPage {
+  items: [token!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input tokenFilter {
+  AND: [tokenFilter]
+  OR: [tokenFilter]
+  id: String
+  id_not: String
+  id_in: [String]
+  id_not_in: [String]
+  id_contains: String
+  id_not_contains: String
+  id_starts_with: String
+  id_ends_with: String
+  id_not_starts_with: String
+  id_not_ends_with: String
+  token: String
+  token_not: String
+  token_in: [String]
+  token_not_in: [String]
+  token_contains: String
+  token_not_contains: String
+  token_starts_with: String
+  token_ends_with: String
+  token_not_starts_with: String
+  token_not_ends_with: String
+  deployer: String
+  deployer_not: String
+  deployer_in: [String]
+  deployer_not_in: [String]
+  deployer_contains: String
+  deployer_not_contains: String
+  deployer_starts_with: String
+  deployer_ends_with: String
+  deployer_not_starts_with: String
+  deployer_not_ends_with: String
+  beneficiary: String
+  beneficiary_not: String
+  beneficiary_in: [String]
+  beneficiary_not_in: [String]
+  beneficiary_contains: String
+  beneficiary_not_contains: String
+  beneficiary_starts_with: String
+  beneficiary_ends_with: String
+  beneficiary_not_starts_with: String
+  beneficiary_not_ends_with: String
+  name: String
+  name_not: String
+  name_in: [String]
+  name_not_in: [String]
+  name_contains: String
+  name_not_contains: String
+  name_starts_with: String
+  name_ends_with: String
+  name_not_starts_with: String
+  name_not_ends_with: String
+  symbol: String
+  symbol_not: String
+  symbol_in: [String]
+  symbol_not_in: [String]
+  symbol_contains: String
+  symbol_not_contains: String
+  symbol_starts_with: String
+  symbol_ends_with: String
+  symbol_not_starts_with: String
+  symbol_not_ends_with: String
+  maxSupply: BigInt
+  maxSupply_not: BigInt
+  maxSupply_in: [BigInt]
+  maxSupply_not_in: [BigInt]
+  maxSupply_gt: BigInt
+  maxSupply_lt: BigInt
+  maxSupply_gte: BigInt
+  maxSupply_lte: BigInt
+  blockNumber: BigInt
+  blockNumber_not: BigInt
+  blockNumber_in: [BigInt]
+  blockNumber_not_in: [BigInt]
+  blockNumber_gt: BigInt
+  blockNumber_lt: BigInt
+  blockNumber_gte: BigInt
+  blockNumber_lte: BigInt
+  txHash: String
+  txHash_not: String
+  txHash_in: [String]
+  txHash_not_in: [String]
+  txHash_contains: String
+  txHash_not_contains: String
+  txHash_starts_with: String
+  txHash_ends_with: String
+  txHash_not_starts_with: String
+  txHash_not_ends_with: String
+}
+
+type tokenSale {
+  id: String!
+  token: String!
+  saleAmount: BigInt!
+  purchasePrice: BigInt!
+  saleStartBlock: BigInt!
+  saleEndBlock: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+}
+
+type tokenSalePage {
+  items: [tokenSale!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input tokenSaleFilter {
+  AND: [tokenSaleFilter]
+  OR: [tokenSaleFilter]
+  id: String
+  id_not: String
+  id_in: [String]
+  id_not_in: [String]
+  id_contains: String
+  id_not_contains: String
+  id_starts_with: String
+  id_ends_with: String
+  id_not_starts_with: String
+  id_not_ends_with: String
+  token: String
+  token_not: String
+  token_in: [String]
+  token_not_in: [String]
+  token_contains: String
+  token_not_contains: String
+  token_starts_with: String
+  token_ends_with: String
+  token_not_starts_with: String
+  token_not_ends_with: String
+  saleAmount: BigInt
+  saleAmount_not: BigInt
+  saleAmount_in: [BigInt]
+  saleAmount_not_in: [BigInt]
+  saleAmount_gt: BigInt
+  saleAmount_lt: BigInt
+  saleAmount_gte: BigInt
+  saleAmount_lte: BigInt
+  purchasePrice: BigInt
+  purchasePrice_not: BigInt
+  purchasePrice_in: [BigInt]
+  purchasePrice_not_in: [BigInt]
+  purchasePrice_gt: BigInt
+  purchasePrice_lt: BigInt
+  purchasePrice_gte: BigInt
+  purchasePrice_lte: BigInt
+  saleStartBlock: BigInt
+  saleStartBlock_not: BigInt
+  saleStartBlock_in: [BigInt]
+  saleStartBlock_not_in: [BigInt]
+  saleStartBlock_gt: BigInt
+  saleStartBlock_lt: BigInt
+  saleStartBlock_gte: BigInt
+  saleStartBlock_lte: BigInt
+  saleEndBlock: BigInt
+  saleEndBlock_not: BigInt
+  saleEndBlock_in: [BigInt]
+  saleEndBlock_not_in: [BigInt]
+  saleEndBlock_gt: BigInt
+  saleEndBlock_lt: BigInt
+  saleEndBlock_gte: BigInt
+  saleEndBlock_lte: BigInt
+  blockNumber: BigInt
+  blockNumber_not: BigInt
+  blockNumber_in: [BigInt]
+  blockNumber_not_in: [BigInt]
+  blockNumber_gt: BigInt
+  blockNumber_lt: BigInt
+  blockNumber_gte: BigInt
+  blockNumber_lte: BigInt
+  txHash: String
+  txHash_not: String
+  txHash_in: [String]
+  txHash_not_in: [String]
+  txHash_contains: String
+  txHash_not_contains: String
+  txHash_starts_with: String
+  txHash_ends_with: String
+  txHash_not_starts_with: String
+  txHash_not_ends_with: String
+}
+
+type tokenSaleActivity {
+  id: String!
+  token: String!
+  kind: String!
+  tokenAmount: BigInt!
+  fundingAmount: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+}
+
+type tokenSaleActivityPage {
+  items: [tokenSaleActivity!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input tokenSaleActivityFilter {
+  AND: [tokenSaleActivityFilter]
+  OR: [tokenSaleActivityFilter]
+  id: String
+  id_not: String
+  id_in: [String]
+  id_not_in: [String]
+  id_contains: String
+  id_not_contains: String
+  id_starts_with: String
+  id_ends_with: String
+  id_not_starts_with: String
+  id_not_ends_with: String
+  token: String
+  token_not: String
+  token_in: [String]
+  token_not_in: [String]
+  token_contains: String
+  token_not_contains: String
+  token_starts_with: String
+  token_ends_with: String
+  token_not_starts_with: String
+  token_not_ends_with: String
+  kind: String
+  kind_not: String
+  kind_in: [String]
+  kind_not_in: [String]
+  kind_contains: String
+  kind_not_contains: String
+  kind_starts_with: String
+  kind_ends_with: String
+  kind_not_starts_with: String
+  kind_not_ends_with: String
+  tokenAmount: BigInt
+  tokenAmount_not: BigInt
+  tokenAmount_in: [BigInt]
+  tokenAmount_not_in: [BigInt]
+  tokenAmount_gt: BigInt
+  tokenAmount_lt: BigInt
+  tokenAmount_gte: BigInt
+  tokenAmount_lte: BigInt
+  fundingAmount: BigInt
+  fundingAmount_not: BigInt
+  fundingAmount_in: [BigInt]
+  fundingAmount_not_in: [BigInt]
+  fundingAmount_gt: BigInt
+  fundingAmount_lt: BigInt
+  fundingAmount_gte: BigInt
+  fundingAmount_lte: BigInt
+  blockNumber: BigInt
+  blockNumber_not: BigInt
+  blockNumber_in: [BigInt]
+  blockNumber_not_in: [BigInt]
+  blockNumber_gt: BigInt
+  blockNumber_lt: BigInt
+  blockNumber_gte: BigInt
+  blockNumber_lte: BigInt
+  txHash: String
+  txHash_not: String
+  txHash_in: [String]
+  txHash_not_in: [String]
+  txHash_contains: String
+  txHash_not_contains: String
+  txHash_starts_with: String
+  txHash_ends_with: String
+  txHash_not_starts_with: String
+  txHash_not_ends_with: String
+}
+
+type poolInitialization {
+  id: String!
+  token: String!
+  fundingToken: String!
+  poolId: String!
+  blockNumber: BigInt!
+  txHash: String!
+}
+
+type poolInitializationPage {
+  items: [poolInitialization!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input poolInitializationFilter {
+  AND: [poolInitializationFilter]
+  OR: [poolInitializationFilter]
+  id: String
+  id_not: String
+  id_in: [String]
+  id_not_in: [String]
+  id_contains: String
+  id_not_contains: String
+  id_starts_with: String
+  id_ends_with: String
+  id_not_starts_with: String
+  id_not_ends_with: String
+  token: String
+  token_not: String
+  token_in: [String]
+  token_not_in: [String]
+  token_contains: String
+  token_not_contains: String
+  token_starts_with: String
+  token_ends_with: String
+  token_not_starts_with: String
+  token_not_ends_with: String
+  fundingToken: String
+  fundingToken_not: String
+  fundingToken_in: [String]
+  fundingToken_not_in: [String]
+  fundingToken_contains: String
+  fundingToken_not_contains: String
+  fundingToken_starts_with: String
+  fundingToken_ends_with: String
+  fundingToken_not_starts_with: String
+  fundingToken_not_ends_with: String
+  poolId: String
+  poolId_not: String
+  poolId_in: [String]
+  poolId_not_in: [String]
+  poolId_contains: String
+  poolId_not_contains: String
+  poolId_starts_with: String
+  poolId_ends_with: String
+  poolId_not_starts_with: String
+  poolId_not_ends_with: String
+  blockNumber: BigInt
+  blockNumber_not: BigInt
+  blockNumber_in: [BigInt]
+  blockNumber_not_in: [BigInt]
+  blockNumber_gt: BigInt
+  blockNumber_lt: BigInt
+  blockNumber_gte: BigInt
+  blockNumber_lte: BigInt
+  txHash: String
+  txHash_not: String
+  txHash_in: [String]
+  txHash_not_in: [String]
+  txHash_contains: String
+  txHash_not_contains: String
+  txHash_starts_with: String
+  txHash_ends_with: String
+  txHash_not_starts_with: String
+  txHash_not_ends_with: String
+}

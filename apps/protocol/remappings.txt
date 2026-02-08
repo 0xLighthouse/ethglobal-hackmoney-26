@@ -1,6 +1,9 @@
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+forge-std/=lib/forge-std/src/
+@solmate/=lib/solmate/src/
 @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 hardhat/=lib/hardhat/
-@uniswap/v4-core/=lib/liquidity-launcher/lib/v4-core/
-@uniswap/v4-periphery/=lib/liquidity-launcher/lib/v4-periphery/
-@uniswap/blocknumberish/=lib/liquidity-launcher/lib/blocknumberish/
-blocknumberish=lib/liquidity-launcher/lib/blocknumberish
+solady/=lib/solady/src/
+v4-core/=lib/v4-core/src/
+permit2/=lib/v4-periphery/lib/permit2/
+v4-periphery/=lib/v4-periphery/src/

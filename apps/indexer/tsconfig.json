@@ -1,0 +1,15 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": "."
+  },
+  "include": [
+    "abis",
+    "src",
+    "ponder.config.ts",
+    "ponder.schema.ts",
+    "ponder-env.d.ts"
+  ]
+}

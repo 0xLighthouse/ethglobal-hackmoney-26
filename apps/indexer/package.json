@@ -1,0 +1,25 @@
+{
+  "name": "@repo/indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "ponder dev",
+    "build": "ponder build",
+    "start": "ponder start",
+    "lint": "biome check .",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@repo/abis": "workspace:*",
+    "hono": "^4.11.7",
+    "ponder": "^0.15.17",
+    "viem": "^2.45.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.14",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "typescript": "5.9.2"
+  }
+}
