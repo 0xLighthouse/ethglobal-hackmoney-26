@@ -1,4 +1,4 @@
-![logo](https://raw.githubusercontent.com/0xLighthouse/ethglobal-hackmoney-26/refs/heads/develop/clawback.svg)
+![logo](https://raw.githubusercontent.com/0xLighthouse/ethglobal-hackmoney-26/refs/heads/main/clawback.svg)
 
 ```
  _______  ___      _______  _     _  _______  _______  _______  ___   _
