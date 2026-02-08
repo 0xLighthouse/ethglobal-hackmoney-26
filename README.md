@@ -1,42 +1,71 @@
-# Clawback: Agent-Native Refundable Token Sales
+![logo](https://raw.githubusercontent.com/0xLighthouse/ethglobal-hackmoney-26/refs/heads/develop/clawback.svg)
 
-A protocol that enables agents to launch tokens with programmable refund mechanisms, creating performance-coupled capital raising without centralized gatekeepers.
+```
+ _______  ___      _______  _     _  _______  _______  _______  ___   _
+|       ||   |    |   _   || | _ | ||  _    ||   _   ||       ||   | | |
+|       ||   |    |  |_|  || || || || |_|   ||  |_|  ||       ||   |_| |
+|       ||   |    |       ||       ||       ||       ||       ||      _|
+|      _||   |___ |       ||       ||  _   | |       ||      _||     |_
+|     |_ |       ||   _   ||   _   || |_|   ||   _   ||     |_ |    _  |
+|_______||_______||__| |__||__| |__||_______||__| |__||_______||___| |_|
 
+```
 ## Overview
 
 Clawback lets agents:
 
-- **Self-issue capital** through token sales using USDC as their funding asset.
+- **Self-issue capital** through token sales using USDC as their funding asset, with automatic Uniswap pool creation and liquidity provisioning.
 - **Run continuous fundraising** across multiple sale windows without redeployment
 - **Encode trust on-chain** through transparent, time-decaying refund rights
 
 **Key innovation**: Buyers can return tokens and recover funds if the agent underperforms. Refund rights decay over time, unlocking capital for agents as they execute.
 
+## Repo Structure
+- [`protocol`](./apps/protocol/): Smart contracts for Clawback
+
+- [`interface`](./apps/interface/): Frontend for Clawback Protocol
+
+- [`indexer`](./apps/indexer/): Ponder based indexer for monitoring and storing emitted events
+
 ## How It Works
 
-1. **Token Creation**
-   100% of supply is minted to the contract (not the agent), ensuring all tokens are subject to the refund mechanism
+1. **Token Creation:**
 
-2. **Sale Configuration**
-   Each sale window defines:
-   - **Sale period**: `saleStartBlock` → `saleEndBlock`
-   - **Initial refund rate**: `refundableBpsAtStart` (e.g., 8000 = 80% refundable)
-   - **Decay schedule**: `refundableDecayStartBlock` → `refundableDecayEndBlock`
+   The agent creates their own token through our factory, specifying the name and max supply. 100% of new tokens start out minted to the contract (not the agent), so humans can be assured there will be no surprises down the line.
 
-3. **Purchase Flow**
-   Buyers receive tokens plus embedded refund rights that decay over the configured window
+2. **Sale Configuration:**
 
-4. **Capital Release**
-   `claimableFunds()` releases funding to the beneficiary as refund obligations decrease
+   The agent can now launch a token sale, and specify:
+   - **Sale price**: The price of new tokens in USDC (e.g. 1000000 = $1 USDC per token)
+   - **Initial refund rate**: `refundableBpsAtStart` (e.g., 8000 = 80% of tokens will start out refundable)
+   - **Sale period**: The sale will be open from `saleStartBlock` and ending at `saleEndBlock` (denoted as block height). Unsold tokens will remain available to sell next time.
+   - **Decay schedule**: Tokens are refundable immediately, and the initial refund rate will continue until `refundableDecayStartBlock`. Tokens will gradually convert to completely non-refundable by the time we reach `refundableDecayEndBlock` (denoted as block height).
 
-5. **Transferability**
-   Tokens and their refund rights transfer together, maintaining the refund mechanism through secondary markets
+   A new sale can be created as soon as the previous sale's refund window is closed.
+
+3. **Purchase Flow:**
+
+   Human buyers use our web interface to easily buy tokens. Because of Arc's bridge, their USDC can be on any chain and we will move it automatically. All tokens come with embedded refund rights that decay over the configured window. Refunds can be conducted through our interface or directly by calling `refund(tokenAmount, payee)` on the token contract.
+
+4. **Capital Release:**
+
+   `claimableFunds()` reports how much USDC is available for the agent to claim as refund obligations decrease.
+   Anyone can call `claimFundsForBeneficiary()` to transfer all claimable funds to the beneficiary address set when the token was created.
+
+5. **Transferability:**
+
+   Tokens and their refund rights transfer together, following the refund window schedule, maintaining the refund mechanism through secondary markets.
 
 ## Architecture
 
 ```
-ERC20RefundableTokenSaleFactory
-  └── Creates and indexes agent token-sale contracts
+ERC20Refundable
+  ├── ERC-20 token implementation
+  ├── Time-decaying refund rights
+  │   ├── refund()
+  │   ├── claimableFunds()
+  │   └── claimFundsForBeneficiary()
+  └── Beneficiary fund claims
 
 ERC20RefundableTokenSale
   ├── Sale lifecycle management
@@ -45,16 +74,14 @@ ERC20RefundableTokenSale
   │   └── endSale()
   └── Optional Uniswap v4 liquidity seeding
 
-ERC20Refundable
-  ├── ERC-20 token implementation
-  ├── Time-decaying refund rights
-  └── Beneficiary fund claims
+ERC20RefundableTokenSaleFactory
+  └── Creates and indexes agent token-sale contracts
 
 TokenLiquidity (library)
   └── Uniswap v4 pool creation and liquidity helpers
 ```
 
-## Use Cases
+## Benefits
 
 **For Agents**
 
@@ -79,18 +106,16 @@ Traditional token sales lock capital immediately, creating misaligned incentives
 - **Poor performance**: Increases redemptions instead of trapping buyers
 - **Trust mechanism**: Refund terms are enforced by code, not promises
 
-## Getting Started
+## Prize Tracks
 
-[Add installation and usage instructions here]
+### Uniswap v4 Agentic Finance
+We enable agents to launch a token sale, wrapped around a Uniswap v4 pool. Liquidity is provisioned and added to the pool with every purchase, adjusted for current token price. 
 
-## License
-
-[Add license information]
-
----
-
-**Net Effect**: This protocol creates a better funding primitive for agentic systems by giving agents recurring access to capital while maintaining a credible, on-chain exit path for buyers when performance diverges from expectations.
+### Arc - Chain Abstracted USDC Apps Using Arc as a Liquidity Hub
+When a human participates in an agent's token sale, we detect the user's USDC balances across all chains and let them migrate funds to the current chain with one click. Gone are the days of seeing a sale you want to jump in to, and having to track down your funds to pay for it!
 
 ## Faucets
 
 - USDC <https://faucet.circle.com/>
+
+
