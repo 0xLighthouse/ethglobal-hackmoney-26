@@ -355,7 +355,7 @@ contract ERC20RefundableTokenSaleTest is Test {
         token.purchase(tokenAmount, fundingAmount);
 
         // Fast forward past decay
-        vm.roll(block.number + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION);
+        vm.roll(block.number + SALE_DURATION + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION + 1);
 
         vm.expectRevert("No refundable balance");
         token.refund(tokenAmount, alice);
@@ -394,7 +394,7 @@ contract ERC20RefundableTokenSaleTest is Test {
         uint256 claimableBefore = token.claimableFunds();
 
         // Fast forward to middle of decay
-        vm.roll(block.number + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION / 2);
+        vm.roll(block.number + SALE_DURATION + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION / 2);
 
         uint256 claimableDuringDecay = token.claimableFunds();
         assertGt(claimableDuringDecay, claimableBefore);
@@ -449,9 +449,9 @@ contract ERC20RefundableTokenSaleTest is Test {
                 purchasePrice: PURCHASE_PRICE,
                 saleStartBlock: uint64(saleStartBlock),
                 saleEndBlock: uint64(saleEndBlock),
-                refundableDecayStartBlock: uint64(saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY),
+                refundableDecayStartBlock: uint64(saleEndBlock + REFUNDABLE_DECAY_BLOCK_DELAY),
                 refundableDecayEndBlock: uint64(
-                    saleStartBlock + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION
+                    saleEndBlock + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION
                 ),
                 refundableBpsAtStart: REFUNDABLE_BPS_START,
                 additionalTokensReservedForLiquidityBps: 0
@@ -531,7 +531,7 @@ contract ERC20RefundableTokenSaleTest is Test {
         }
 
         // Even more time passes (past decay)
-        vm.roll(block.number + 200);
+        vm.roll(block.number + SALE_DURATION + REFUNDABLE_DECAY_BLOCK_DELAY + REFUNDABLE_DECAY_BLOCK_DURATION);
 
         // Alice can no longer refund
         assertEq(token.refundableBalanceOf(alice), 0);
