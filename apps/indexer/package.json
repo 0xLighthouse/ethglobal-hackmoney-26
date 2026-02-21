@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@repo/abis": "workspace:*",
-    "hono": "^4.11.7",
+    "hono": "^4.11.10",
     "ponder": "^0.15.17",
     "viem": "^2.45.0"
   },
